@@ -21,7 +21,7 @@ class UserOrm(Base):
     id: Mapped[intpk]
     username: Mapped[str] = mapped_column(String(19), unique=True)
     hash_password: Mapped[str] = mapped_column(String(255))
-    spending: Mapped[list["SpendingOrm"]] = relationship(
+    spending: Mapped[list["TransactionOrm"]] = relationship(
         back_populates="user"
     )
     refresh_tokens: Mapped[list["RefreshTokenOrm"]] = relationship(
@@ -38,7 +38,7 @@ class TransactionType(str, enum.Enum):
     SPENDING = "spending"
 
 
-class SpendingOrm(Base):
+class TransactionOrm(Base):
     __tablename__ = "spending"
     id: Mapped[intpk]
     name: Mapped[str] = mapped_column(String(50))
@@ -69,7 +69,7 @@ class CategoriesOrm(Base):
     user: Mapped["UserOrm"] = relationship(
         back_populates="categories",
     )
-    spending: Mapped[list["SpendingOrm"]] = relationship(
+    spending: Mapped[list["TransactionOrm"]] = relationship(
         back_populates="category",
         cascade="all, delete-orphan"
     )

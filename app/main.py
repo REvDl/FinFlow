@@ -6,17 +6,17 @@ from fastapi.exceptions import RequestValidationError
 from starlette.responses import JSONResponse
 from app.endpoints.auth import auth_route
 from app.endpoints.category import category_route
-from app.endpoints.spending import spending_route
+from app.endpoints.transaction import transaction_route
 from app.endpoints.user import user_route
 from config import settings
 from core.exceptions import ERROR_MAP, FinFlowException
 from database.base import AsyncOrm
 from database.engine import async_engine
-
+from fastapi.middleware.cors import CORSMiddleware
 
 async def init_db():
     async_engine.echo = False
-    # await AsyncOrm.drop_tables()
+    await AsyncOrm.drop_tables()
     await AsyncOrm.create_tables()
     print("\033[32mINFO:\033[0m     Database reset and created successfully")
     async_engine.echo = True
@@ -42,6 +42,19 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+origins = [
+    "http://localhost:63342",
+    "http://127.0.0.1:63342",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 @app.exception_handler(FinFlowException)
 async def fin_flow_exception(request: Request, exc: FinFlowException):
     status_code = ERROR_MAP.get(type(exc), status.HTTP_400_BAD_REQUEST)
@@ -63,5 +76,5 @@ async def request_validation_exception(request: Request, exc: RequestValidationE
 
 app.include_router(auth_route)
 app.include_router(user_route)
-app.include_router(spending_route)
+app.include_router(transaction_route)
 app.include_router(category_route)

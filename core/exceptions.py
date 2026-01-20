@@ -15,7 +15,7 @@ class TokenMissing(FinFlowException): pass
 class TokenMissingType(FinFlowException): pass
 class AuthUserAlreadyExists(FinFlowException): pass
 class AuthInvalidLoginOrPassword(FinFlowException): pass
-class SpendingNotFound(FinFlowException):pass
+class TransactionNotFound(FinFlowException):pass
 class CategoryNotFound(FinFlowException):pass
 class UserNotFound(FinFlowException):pass
 
@@ -27,7 +27,7 @@ ERROR_MAP: Dict[Type[FinFlowException], int] = {
     TokenMissing: status.HTTP_401_UNAUTHORIZED,
     TokenMissingType: status.HTTP_401_UNAUTHORIZED,
     TokenVerificationFailed: status.HTTP_401_UNAUTHORIZED,
-    SpendingNotFound: status.HTTP_404_NOT_FOUND,
+    TransactionNotFound: status.HTTP_404_NOT_FOUND,
     CategoryNotFound: status.HTTP_404_NOT_FOUND,
     UserNotFound: status.HTTP_404_NOT_FOUND
 }

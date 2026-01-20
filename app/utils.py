@@ -8,7 +8,6 @@ def set_auth_cookies(response: Response, tokens:dict):
         value=tokens["access_token"],
         max_age= (settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60),
         httponly=True,
-        samesite="lax",
+        samesite="none",
         secure=True,
-
     )

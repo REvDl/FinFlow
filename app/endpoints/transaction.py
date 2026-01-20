@@ -1,12 +1,12 @@
 from typing import Annotated
 from fastapi import APIRouter, status, Depends, Query, Request
 from core.dependencies import get_session, get_current_user
-from core.exceptions import SpendingNotFound, CategoryNotFound
-from schemes.spending import SpendingCreate, SpendingResponse, SpendingUpdate, Calendar, Typoi_user, TransactionFilter
+from core.exceptions import TransactionNotFound, CategoryNotFound
+from schemes.transaction import TransactionCreate, TransactionResponse, TransactionUpdate, Calendar, CurrencyModel, TransactionFilter
 from services.categories import CategoryDAO
-from services.spending import SpendingDAO
+from services.spending import TransactionDAO
 
-spending_route = APIRouter(
+transaction_route = APIRouter(
     prefix="/transaction",
     tags=["Transactions"]
 )
@@ -16,14 +16,14 @@ spending_route = APIRouter(
 
 # ---------- SMART_METHODS ----------
 
-@spending_route.get("/total", status_code=status.HTTP_200_OK)
+@transaction_route.get("/total", status_code=status.HTTP_200_OK)
 async def total(request: Request,
                 calendar: Calendar = Depends(),
-                currency_data: Typoi_user = Depends(),
+                currency_data: CurrencyModel = Depends(),
                 how_open: bool = False,
                 session=Depends(get_session),
                 current_user=Depends(get_current_user)):
-    result = await SpendingDAO.total(
+    result = await TransactionDAO.total(
         session=session,
         user_id=current_user.id,
         how_open=how_open,
@@ -36,16 +36,16 @@ async def total(request: Request,
 
 # ---------- COLLECTION ----------
 
-@spending_route.post("/", response_model=SpendingResponse, status_code=status.HTTP_201_CREATED)
+@transaction_route.post("/", response_model=TransactionResponse, status_code=status.HTTP_201_CREATED)
 async def create_spending(
-        spending: SpendingCreate,
+        spending: TransactionCreate,
         session=Depends(get_session),
         current_user=Depends(get_current_user)):
     category = await CategoryDAO.get_by_id(session, spending.category_id)
     if not category or category.user_id != current_user.id:
         raise CategoryNotFound("Category not found")
 
-    new_spending = await SpendingDAO.create_spending(
+    new_spending = await TransactionDAO.create_transaction(
         session=session,
         user_id=current_user.id,
         spending=spending,
@@ -55,21 +55,21 @@ async def create_spending(
     return new_spending
 
 
-@spending_route.get("/", response_model=list[SpendingResponse], status_code=status.HTTP_200_OK)
+@transaction_route.get("/", response_model=list[TransactionResponse], status_code=status.HTTP_200_OK)
 async def list_spending(transaction: TransactionFilter = Depends(),
                         session=Depends(get_session),
                         current_user=Depends(get_current_user)):
-    return await SpendingDAO.read_transaction_all(
+    return await TransactionDAO.read_transaction_all(
         session=session,
         user_id=current_user.id,
         transaction=transaction.type
     )
 
 
-@spending_route.delete("/", status_code=status.HTTP_204_NO_CONTENT)
+@transaction_route.delete("/", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_all_spending(session=Depends(get_session),
                               current_user=Depends(get_current_user)):
-    await SpendingDAO.delete_spending_all(
+    await TransactionDAO.delete_transaction_all(
         session=session,
         user_id=current_user.id
     )
@@ -78,30 +78,30 @@ async def delete_all_spending(session=Depends(get_session),
 
 # ---------- ITEM ----------
 
-@spending_route.get("/{spending_id}", response_model=SpendingResponse, status_code=status.HTTP_200_OK)
+@transaction_route.get("/{spending_id}", response_model=TransactionResponse, status_code=status.HTTP_200_OK)
 async def get_spending(
         spending_id: int,
         session=Depends(get_session),
         current_user=Depends(get_current_user)):
-    spending = await SpendingDAO.read_spending_one(
+    spending = await TransactionDAO.read_transaction_one(
         session=session,
         spending_id=spending_id
     )
     if not spending or spending.user_id != current_user.id:
-        raise SpendingNotFound("Spending not found")
+        raise TransactionNotFound("Spending not found")
     return spending
 
 
-@spending_route.patch("/{spending_id}", response_model=SpendingResponse, status_code=status.HTTP_200_OK)
+@transaction_route.patch("/{spending_id}", response_model=TransactionResponse, status_code=status.HTTP_200_OK)
 async def update_spending(spending_id: int,
-                          update: SpendingUpdate,
+                          update: TransactionUpdate,
                           session=Depends(get_session),
                           current_user=Depends(get_current_user)):
-    spending = await SpendingDAO.read_spending_one(session, spending_id)
+    spending = await TransactionDAO.read_transaction_one(session, spending_id)
     if not spending or spending.user_id != current_user.id:
-        raise SpendingNotFound("Spending not found")
+        raise TransactionNotFound("Spending not found")
 
-    updated = await SpendingDAO.update_spending(
+    updated = await TransactionDAO.update_transaction(
         session=session,
         update=update,
         spending_id=spending_id,
@@ -111,15 +111,15 @@ async def update_spending(spending_id: int,
     return updated
 
 
-@spending_route.delete("/{spending_id}", status_code=status.HTTP_204_NO_CONTENT)
+@transaction_route.delete("/{spending_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_spending(spending_id: int,
                           session=Depends(get_session),
                           current_user=Depends(get_current_user)):
-    spending = await SpendingDAO.read_spending_one(session, spending_id)
+    spending = await TransactionDAO.read_transaction_one(session, spending_id)
     if not spending or spending.user_id != current_user.id:
-        raise SpendingNotFound("Spending not found")
+        raise TransactionNotFound("Spending not found")
 
-    await SpendingDAO.delete_spending_one(
+    await TransactionDAO.delete_transaction_one(
         session=session,
         spending_id=spending_id
     )

@@ -3,9 +3,9 @@ from fastapi import APIRouter, status, Depends
 from core.dependencies import get_session, get_current_user
 from core.exceptions import CategoryNotFound
 from schemes.category import CategoryResponse, CategoryCreate, CategoryUpdate
-from schemes.spending import SpendingResponse
+from schemes.transaction import TransactionResponse
 from services.categories import CategoryDAO
-from services.spending import SpendingDAO
+from services.spending import TransactionDAO
 
 category_route = APIRouter(prefix="/categories", tags=["Categories"])
 
@@ -37,11 +37,11 @@ async def get_category_user(
 
 
 
-@category_route.get("/{category_id}", response_model=list[SpendingResponse], status_code=status.HTTP_200_OK)
+@category_route.get("/{category_id}", response_model=list[TransactionResponse], status_code=status.HTTP_200_OK)
 async def get_category(category_id: int,
                        session=Depends(get_session),
                        current_user=Depends(get_current_user)):
-    spendings = await SpendingDAO.read_spending_category(
+    spendings = await TransactionDAO.read_transaction_category(
         session=session,
         category_id=category_id,
         user_id=current_user.id

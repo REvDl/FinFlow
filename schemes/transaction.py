@@ -30,8 +30,8 @@ CurrencyManager = {
 }
 
 
-class Typoi_user(BaseModel):
-    to_currency: Literal["UAH", "RUB", "EUR", "USD"] = "UAH"
+class CurrencyModel(BaseModel):
+    to_currency: Literal["UAH", "RUB", "EUR", "USD", "CZK"] = "UAH"
 
 RU_INFO = RussianParserInfo()
 
@@ -66,7 +66,7 @@ def parse_flexible_date(v):
 
 
 
-class SpendingCreate(BaseModel):
+class TransactionCreate(BaseModel):
     name: str = Field(..., max_length=50)
     description: str | None = Field(default=None, max_length=250)
     price: condecimal(gt=0, max_digits=20, decimal_places=2)
@@ -85,7 +85,7 @@ class SpendingCreate(BaseModel):
 
 
 
-class SpendingResponse(BaseModel):
+class TransactionResponse(BaseModel):
     id: int
     name: str
     description: str | None
@@ -98,7 +98,7 @@ class SpendingResponse(BaseModel):
     transaction: str
 
 
-class SpendingUpdate(BaseModel):
+class TransactionUpdate(BaseModel):
     name: str | None = Field(default=None, max_length=50)
     description: str | None = Field(default=None, max_length=250)
     price: Decimal | None = None
