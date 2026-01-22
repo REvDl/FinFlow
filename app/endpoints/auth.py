@@ -12,10 +12,11 @@ auth_route = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 @auth_route.post("/register", status_code=status.HTTP_201_CREATED)
-async def register(user_data: UserCreate, session=Depends(get_session)):
+async def register(response: Response, user_data: UserCreate, session=Depends(get_session)):
     new_user = await AuthService.register(session, user_data)
     await session.commit()
     await session.refresh(new_user["user"])
+    set_auth_cookies(response, new_user["tokens"])
     return {
         "user": UserResponse.model_validate(new_user["user"]),
         "tokens": new_user["tokens"]
@@ -54,5 +55,11 @@ async def refresh(response: Response,
 
 @auth_route.post("/logout")
 async def logout(response: Response):
-    response.delete_cookie("access_token")
+    response.delete_cookie(
+        key="access_token",
+        httponly=True,
+        samesite="lax",
+        secure=False,
+        path="/",
+    )
     return {"message": "Successfully logged out"}

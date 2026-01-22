@@ -10,4 +10,5 @@ def set_auth_cookies(response: Response, tokens:dict):
         httponly=True,
         samesite="none",
         secure=True,
+        path="/"
     )

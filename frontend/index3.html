@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinFlow — Управление финансами</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .hidden { display: none; }
+        .modal-bg { background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
+        .card { transition: all 0.3s ease; }
+        .card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        select { cursor: pointer; }
+        .loading-skeleton { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 font-sans">
+
+    <div id="authModal" class="fixed inset-0 modal-bg flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
+            <h2 id="authTitle" class="text-2xl font-bold mb-6 text-center text-indigo-600 transition-colors">Вход в FinFlow</h2>
+            <form id="authForm" class="space-y-4">
+                <input type="text" name="username" placeholder="Логин" required class="w-full p-3 border rounded-lg outline-none focus:ring-2 ring-indigo-100">
+                <input type="password" name="password" placeholder="Пароль" required class="w-full p-3 border rounded-lg outline-none focus:ring-2 ring-indigo-100">
+                <button type="submit" id="authBtn" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700 transition disabled:bg-gray-400">Войти</button>
+                <p class="text-center text-sm mt-4 text-gray-500">
+                    <button type="button" onclick="toggleAuthMode()" id="authToggleBtn" class="text-indigo-600 font-bold underline">Создать аккаунт</button>
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <div id="app" class="hidden">
+        <nav class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between h-16 items-center">
+                <div class="flex items-center font-bold text-xl text-indigo-600">
+                    <i class="fas fa-wallet mr-2"></i> FinFlow
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span id="userNameDisplay" class="text-sm font-medium text-gray-600"></span>
+                    <button onclick="logout()" class="text-xs bg-red-50 text-red-600 px-3 py-2 rounded-lg hover:bg-red-100 transition">Выйти</button>
+                </div>
+            </div>
+        </nav>
+
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-8 flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2 border-r pr-4">
+                        <i class="fas fa-calendar-alt text-indigo-500"></i>
+                        <input type="date" id="startDate" class="p-1 border rounded-md text-xs outline-none">
+                        <span class="text-gray-300">—</span>
+                        <input type="date" id="endDate" class="p-1 border rounded-md text-xs outline-none">
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <i class="fas fa-coins text-amber-500"></i>
+                        <span class="text-xs font-bold text-gray-500 uppercase">Валюта:</span>
+                        <select id="displayCurrency" class="text-xs p-1 border rounded bg-white font-bold text-indigo-600 outline-none">
+                            <option value="UAH">UAH (₴)</option>
+                            <option value="USD">USD ($)</option>
+                            <option value="EUR">EUR (€)</option>
+                        </select>
+                    </div>
+                </div>
+                <button onclick="resetDates()" class="text-xs text-indigo-600 font-bold hover:underline italic">Сбросить фильтры</button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 card">
+                    <p class="text-xs text-gray-400 uppercase font-black">Баланс за период</p>
+                    <h2 id="totalBalance" class="text-3xl font-black text-gray-800 mt-1">0.00 ₴</h2>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 border-l-4 border-l-green-500 card">
+                    <p class="text-xs text-gray-400 uppercase font-black text-green-600">Доходы</p>
+                    <h2 id="totalIncome" class="text-3xl font-black text-green-600 mt-1">+ 0.00</h2>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 border-l-4 border-l-red-500 card">
+                    <p class="text-xs text-gray-400 uppercase font-black text-red-600">Расходы</p>
+                    <h2 id="totalSpending" class="text-3xl font-black text-red-600 mt-1">- 0.00</h2>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="space-y-6">
+                    <section class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <h3 class="font-bold text-gray-700 mb-4 flex items-center">
+                            <i class="fas fa-plus-circle mr-2 text-indigo-500"></i> Новая транзакция
+                        </h3>
+                        <form id="transactionForm" class="space-y-3">
+                            <input name="name" placeholder="Описание" required class="w-full p-2 border rounded-lg outline-none text-sm focus:ring-2 ring-indigo-50">
+                            <div class="flex gap-2">
+                                <input name="price" type="number" step="0.01" placeholder="Сумма" required class="flex-1 p-2 border rounded-lg outline-none text-sm">
+                                <select name="currency" class="p-2 border rounded-lg bg-gray-50 text-xs font-bold outline-none">
+                                    <option value="UAH">UAH</option>
+                                    <option value="USD">USD</option>
+                                    <option value="EUR">EUR</option>
+                                </select>
+                            </div>
+                            <select name="transaction" class="w-full p-2 border rounded-lg outline-none bg-gray-50 text-sm font-semibold">
+                                <option value="spending">Расход</option>
+                                <option value="income">Доход</option>
+                            </select>
+                            <select id="categorySelect" name="category_id" required class="w-full p-2 border rounded-lg outline-none bg-gray-50 text-sm">
+                                <option value="">Выберите категорию</option>
+                            </select>
+                            <button type="submit" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-black hover:bg-indigo-700 transition shadow-md shadow-indigo-100 uppercase tracking-widest">
+                                Добавить
+                            </button>
+                        </form>
+                    </section>
+
+                    <section class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <h3 class="font-bold text-gray-700 mb-4 tracking-tight uppercase text-xs">Распределение трат</h3>
+                        <div id="categoriesStats" class="space-y-4"></div>
+                    </section>
+
+                    <section class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <h3 class="font-bold text-gray-700 mb-4 tracking-tight uppercase text-xs">Управление категориями</h3>
+                        <div class="flex gap-2">
+                            <input id="newCatName" type="text" placeholder="Новая категория" class="flex-1 p-2 border rounded-lg outline-none text-sm">
+                            <button onclick="createCategory()" class="bg-indigo-600 text-white px-4 rounded-lg font-bold hover:bg-indigo-700">+</button>
+                        </div>
+                    </section>
+                </div>
+
+                <div class="lg:col-span-2">
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div class="p-6 border-b flex justify-between items-center bg-gray-50/50">
+                            <h3 class="font-black text-gray-700 uppercase text-xs">История операций</h3>
+                            <select id="typeFilter" class="text-[10px] p-1 border rounded bg-white outline-none font-bold uppercase">
+                                <option value="all">Все типы</option>
+                                <option value="spending">Только расходы</option>
+                                <option value="income">Только доходы</option>
+                            </select>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead class="bg-gray-50/50 text-[10px] text-gray-400 uppercase font-black">
+                                    <tr>
+                                        <th class="px-6 py-4">Дата</th>
+                                        <th class="px-6 py-4">Описание</th>
+                                        <th class="px-6 py-4 text-right">Сумма</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="transactionTable" class="divide-y divide-gray-50"></tbody>
+                            </table>
+                        </div>
+                        <div id="scrollTrigger" class="p-8 text-center text-xs text-gray-400 font-bold uppercase tracking-widest">
+                            <span id="loadingText">Загрузка...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const API_BASE = "https://subjunior-kayson-euphemistically.ngrok-free.dev";
+
+        let isLoginMode = true;
+        let currentCursor = null;
+        let hasMore = true;
+        let isLoading = false;
+        const currencySymbols = { 'UAH': '₴', 'USD': '$', 'EUR': '€', 'RUB': '₽' };
+
+        // API Утилита
+        async function api(path, options = {}) {
+            return await fetch(API_BASE + path, {
+                ...options,
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json', ...options.headers }
+            });
+        }
+
+        // --- АВТОРИЗАЦИЯ И СМЕНА ТЕКСТА ---
+
+        function toggleAuthMode() {
+            isLoginMode = !isLoginMode;
+            const title = document.getElementById('authTitle');
+            const btn = document.getElementById('authBtn');
+            const toggleBtn = document.getElementById('authToggleBtn');
+
+            // Возвращаем стандартный цвет заголовка, если он был зеленым
+            title.classList.remove('text-green-500');
+            title.classList.add('text-indigo-600');
+
+            if (isLoginMode) {
+                title.textContent = "Вход в FinFlow";
+                btn.textContent = "Войти";
+                toggleBtn.textContent = "Создать аккаунт";
+            } else {
+                title.textContent = "Регистрация";
+                btn.textContent = "Зарегистрироваться";
+                toggleBtn.textContent = "У меня есть аккаунт";
+            }
+        }
+
+        document.getElementById('authForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('authBtn');
+            const title = document.getElementById('authTitle');
+            const initialBtnText = btn.textContent;
+
+            btn.disabled = true;
+            btn.textContent = "Подождите...";
+
+            const data = Object.fromEntries(new FormData(e.target));
+            const path = isLoginMode ? '/auth/login' : '/auth/register';
+
+            try {
+                const res = await api(path, { method: 'POST', body: JSON.stringify(data) });
+                if (res.ok) {
+                    if (!isLoginMode) {
+                        // Эффект успешной регистрации
+                        title.textContent = "Аккаунт создан!";
+                        title.classList.replace('text-indigo-600', 'text-green-500');
+                        btn.textContent = "Входим в систему...";
+                        await new Promise(r => setTimeout(r, 1200));
+                    }
+                    checkAuth();
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    alert(err.detail || "Ошибка доступа. Проверьте данные.");
+                    btn.disabled = false;
+                    btn.textContent = initialBtnText;
+                }
+            } catch (e) {
+                alert("Ошибка соединения с сервером");
+                btn.disabled = false;
+                btn.textContent = initialBtnText;
+            }
+        };
+
+        async function checkAuth() {
+            try {
+                const res = await api('/user/');
+                if (res.ok) {
+                    const user = await res.json();
+                    document.getElementById('userNameDisplay').textContent = user.username;
+                    document.getElementById('app').classList.remove('hidden');
+                    document.getElementById('authModal').classList.add('hidden');
+                    initData();
+                } else {
+                    document.getElementById('authModal').classList.remove('hidden');
+                }
+            } catch (e) { document.getElementById('authModal').classList.remove('hidden'); }
+        }
+
+        // --- ЛОГИКА ДАННЫХ ---
+
+        async function initData() {
+            loadCategories();
+            refreshAllData();
+            setupInfiniteScroll();
+        }
+
+        function resetDates() {
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            refreshAllData();
+        }
+
+        async function refreshAllData() {
+            currentCursor = null;
+            hasMore = true;
+            isLoading = false;
+            document.getElementById('transactionTable').innerHTML = '';
+            document.getElementById('loadingText').textContent = 'Загрузка...';
+            await updateBalance();
+            await loadTransactions(true);
+        }
+
+        async function updateBalance() {
+            const start = document.getElementById('startDate').value;
+            const end = document.getElementById('endDate').value;
+            const to_currency = document.getElementById('displayCurrency').value;
+            const symbol = currencySymbols[to_currency] || to_currency;
+
+            let url = `/transaction/total?to_currency=${to_currency}`;
+            if (start) url += `&start=${start}`;
+            if (end) url += `&end=${end}`;
+
+            const res = await api(url);
+            if (res.ok) {
+                const data = await res.json();
+                document.getElementById('totalBalance').textContent = `${(data.balance || 0).toFixed(2)} ${symbol}`;
+                document.getElementById('totalIncome').textContent = `+ ${(data.total_income || 0).toFixed(2)}`;
+                document.getElementById('totalSpending').textContent = `- ${(data.total_spending || 0).toFixed(2)}`;
+
+                const statsDiv = document.getElementById('categoriesStats');
+                statsDiv.innerHTML = '';
+                const maxSpending = data.total_spending || 1;
+
+                for (const [name, info] of Object.entries(data.categories || {})) {
+                    if (info.spending > 0) {
+                        const percent = Math.round((info.spending / maxSpending) * 100);
+                        statsDiv.innerHTML += `
+                            <div>
+                                <div class="flex justify-between text-[11px] mb-1">
+                                    <span class="font-bold text-gray-500 uppercase">${name}</span>
+                                    <span class="text-red-500 font-bold">${info.spending.toFixed(2)} ${symbol}</span>
+                                </div>
+                                <div class="w-full bg-gray-100 rounded-full h-1">
+                                    <div class="bg-indigo-500 h-1 rounded-full transition-all duration-500" style="width: ${percent}%"></div>
+                                </div>
+                            </div>`;
+                    }
+                }
+            }
+        }
+
+        async function loadTransactions(isInitial = false) {
+            if (isLoading || (!hasMore && !isInitial)) return;
+            isLoading = true;
+
+            const type = document.getElementById('typeFilter').value;
+            const start = document.getElementById('startDate').value;
+            const end = document.getElementById('endDate').value;
+
+            let url = `/transaction/?transaction_type=${type}&limit=15`;
+            if (start) url += `&start=${start}`;
+            if (end) url += `&end=${end}`;
+            if (currentCursor && !isInitial) {
+                url += `&cursor_time=${encodeURIComponent(currentCursor.cursor_time)}&cursor_id=${currentCursor.cursor_id}`;
+            }
+
+            try {
+                const res = await api(url);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.items.length === 0 && isInitial) {
+                        document.getElementById('transactionTable').innerHTML = '<tr><td colspan="3" class="p-10 text-center text-gray-400 text-xs font-bold uppercase">Операций пока нет</td></tr>';
+                    } else {
+                        const rowsHtml = data.items.map(t => {
+                            const symbol = currencySymbols[t.currency] || t.currency;
+                            return `
+                            <tr class="hover:bg-gray-50 transition border-b border-gray-50">
+                                <td class="px-6 py-4 text-[10px] text-gray-400 font-bold">${new Date(t.created_at).toLocaleDateString()}</td>
+                                <td class="px-6 py-4 text-sm">
+                                    <div class="font-bold text-gray-700">${t.name}</div>
+                                    <div class="text-[10px] text-indigo-400 uppercase tracking-tighter">${t.category_name || 'Без категории'}</div>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-right font-black ${t.transaction === 'income' ? 'text-green-500' : 'text-red-500'}">
+                                    ${t.transaction === 'income' ? '+' : '-'} ${t.price} ${symbol}
+                                </td>
+                            </tr>`;
+                        }).join('');
+                        if (isInitial) document.getElementById('transactionTable').innerHTML = rowsHtml;
+                        else document.getElementById('transactionTable').insertAdjacentHTML('beforeend', rowsHtml);
+                    }
+                    currentCursor = data.next_cursor;
+                    hasMore = data.has_more;
+                    if (!hasMore && data.items.length > 0) document.getElementById('loadingText').textContent = 'Конец списка';
+                }
+            } catch (e) { console.error(e); } finally { isLoading = false; }
+        }
+
+        function setupInfiniteScroll() {
+            const observer = new IntersectionObserver((entries) => {
+                if (entries[0].isIntersecting && hasMore && !isLoading) loadTransactions();
+            }, { threshold: 0.1 });
+            observer.observe(document.getElementById('scrollTrigger'));
+        }
+
+        async function loadCategories() {
+            const res = await api('/categories/');
+            if (res.ok) {
+                const cats = await res.json();
+                document.getElementById('categorySelect').innerHTML = '<option value="">Выберите категорию</option>' +
+                    cats.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+            }
+        }
+
+        async function createCategory() {
+            const name = document.getElementById('newCatName').value;
+            if (!name) return;
+            const res = await api('/categories/', { method: 'POST', body: JSON.stringify({ name }) });
+            if (res.ok) {
+                document.getElementById('newCatName').value = '';
+                loadCategories();
+            }
+        }
+
+        document.getElementById('transactionForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            const payload = {
+                name: fd.get('name'),
+                price: parseFloat(fd.get('price')),
+                transaction: fd.get('transaction'),
+                category_id: parseInt(fd.get('category_id')),
+                currency: fd.get('currency'),
+                description: ""
+            };
+            const res = await api('/transaction/', { method: 'POST', body: JSON.stringify(payload) });
+            if (res.ok) {
+                e.target.reset();
+                refreshAllData();
+            }
+        };
+
+        // Слушатели фильтров
+        document.getElementById('startDate').onchange = refreshAllData;
+        document.getElementById('endDate').onchange = refreshAllData;
+        document.getElementById('displayCurrency').onchange = refreshAllData;
+        document.getElementById('typeFilter').onchange = refreshAllData;
+
+        async function logout() {
+            await api('/auth/logout', { method: 'POST' });
+            location.reload();
+        }
+
+        checkAuth();
+    </script>
+</body>
+</html>

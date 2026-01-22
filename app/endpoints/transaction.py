@@ -1,10 +1,12 @@
-from typing import Annotated
+import datetime
+from typing import Annotated, Optional
 from fastapi import APIRouter, status, Depends, Query, Request
 from core.dependencies import get_session, get_current_user
 from core.exceptions import TransactionNotFound, CategoryNotFound
+from schemes.pagination import PaginatedTransactionResponse
 from schemes.transaction import TransactionCreate, TransactionResponse, TransactionUpdate, Calendar, CurrencyModel, TransactionFilter
 from services.categories import CategoryDAO
-from services.spending import TransactionDAO
+from services.transaction import TransactionDAO
 
 transaction_route = APIRouter(
     prefix="/transaction",
@@ -16,17 +18,35 @@ transaction_route = APIRouter(
 
 # ---------- SMART_METHODS ----------
 
+#заменили перспективным юнцом...
+# @transaction_route.get("/total", status_code=status.HTTP_200_OK)
+# async def total(request: Request,
+#                 calendar: Calendar = Depends(),
+#                 currency_data: CurrencyModel = Depends(),
+#                 how_open: bool = False,
+#                 session=Depends(get_session),
+#                 current_user=Depends(get_current_user)):
+#     result = await TransactionDAO.total(
+#         session=session,
+#         user_id=current_user.id,
+#         how_open=how_open,
+#         calendar=calendar,
+#         to_currency=currency_data.to_currency,
+#         redis_client=request.app.state.redis,
+#         http_client=request.app.state.http_client
+#     )
+#     return result
+
+
 @transaction_route.get("/total", status_code=status.HTTP_200_OK)
 async def total(request: Request,
                 calendar: Calendar = Depends(),
                 currency_data: CurrencyModel = Depends(),
-                how_open: bool = False,
                 session=Depends(get_session),
                 current_user=Depends(get_current_user)):
-    result = await TransactionDAO.total(
+    result = await TransactionDAO.total_for_frontend(
         session=session,
         user_id=current_user.id,
-        how_open=how_open,
         calendar=calendar,
         to_currency=currency_data.to_currency,
         redis_client=request.app.state.redis,
@@ -55,14 +75,28 @@ async def create_spending(
     return new_spending
 
 
-@transaction_route.get("/", response_model=list[TransactionResponse], status_code=status.HTTP_200_OK)
-async def list_spending(transaction: TransactionFilter = Depends(),
-                        session=Depends(get_session),
-                        current_user=Depends(get_current_user)):
+@transaction_route.get("/", response_model=PaginatedTransactionResponse)
+async def list_spending(
+    # Фильтры (тип транзакции, даты из календаря)
+    transaction: TransactionFilter = Depends(),
+    calendar: Calendar = Depends(),
+    # Параметры пагинации
+    limit: int = 20,
+    cursor_time: Optional[datetime.datetime] = None,
+    cursor_id: Optional[int] = None,
+    # Зависимости
+    session=Depends(get_session),
+    current_user=Depends(get_current_user)
+):
+    # Вызываем метод DAO, который мы написали ранее
     return await TransactionDAO.read_transaction_all(
         session=session,
         user_id=current_user.id,
-        transaction=transaction.type
+        calendar=calendar,
+        limit=limit,
+        cursor_time=cursor_time,
+        cursor_id=cursor_id,
+        transaction_type=transaction.type
     )
 
 

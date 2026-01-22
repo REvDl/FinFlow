@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>FinFlow — Управление финансами</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .hidden { display: none !important; }
+        .modal-bg { background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
+        .progress-bar { height: 6px; border-radius: 3px; background: #e2e8f0; overflow: hidden; }
+        .progress-fill { height: 100%; background: #6366f1; transition: width 0.5s; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+
+    <div id="authModal" class="fixed inset-0 modal-bg flex items-center justify-center z-50">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md mx-4">
+            <h2 id="authTitle" class="text-2xl font-bold mb-6 text-center text-indigo-600">Вход в FinFlow</h2>
+            <form id="authForm" class="space-y-4">
+                <input type="text" name="username" placeholder="Логин" required class="w-full p-3 border rounded-lg outline-none focus:ring-2 ring-indigo-100">
+                <input type="password" name="password" placeholder="Пароль" required class="w-full p-3 border rounded-lg outline-none focus:ring-2 ring-indigo-100">
+                <button type="submit" id="authBtn" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-bold">Войти</button>
+                <p class="text-center text-sm mt-4 text-gray-500">
+                    <button type="button" onclick="toggleAuthMode()" class="text-indigo-600 font-bold underline">Создать аккаунт</button>
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <div id="app" class="hidden">
+        <nav class="bg-white shadow-sm border-b sticky top-0 z-40">
+            <div class="max-w-7xl mx-auto px-4 flex justify-between h-16 items-center">
+                <div class="font-bold text-xl text-indigo-600"><i class="fas fa-wallet mr-2"></i> FinFlow</div>
+                <div class="flex items-center space-x-4">
+                    <span id="userNameDisplay" class="text-sm font-medium text-gray-600"></span>
+                    <button onclick="logout()" class="text-xs bg-red-50 text-red-600 px-3 py-2 rounded-lg font-bold">Выйти</button>
+                </div>
+            </div>
+        </nav>
+
+        <main class="max-w-7xl mx-auto px-4 py-8">
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-8 flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2 border-r pr-4">
+                        <input type="date" id="startDate" class="p-1 border rounded text-xs">
+                        <span class="text-gray-300">—</span>
+                        <input type="date" id="endDate" class="p-1 border rounded text-xs">
+                    </div>
+                    <select id="displayCurrency" class="text-xs p-1 border rounded font-bold text-indigo-600" onchange="refreshAllData()">
+                        <option value="UAH">UAH (₴)</option>
+                        <option value="RUB">RUB (₽)</option>
+                        <option value="USD">USD ($)</option>
+                        <option value="EUR">EUR (€)</option>
+                        <option value="CZK">CZK (Kč)</option>
+                    </select>
+                </div>
+                <button onclick="resetDates()" class="text-xs text-indigo-600 font-bold">Сбросить фильтры</button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <p class="text-xs text-gray-400 uppercase font-black tracking-widest">Баланс</p>
+                    <h2 id="totalBalance" class="text-3xl font-black mt-1 text-gray-800">0.00</h2>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 border-l-4 border-l-green-500">
+                    <p class="text-xs text-green-600 uppercase font-black tracking-widest">Доходы</p>
+                    <h2 id="totalIncome" class="text-3xl font-black text-green-600 mt-1">0.00</h2>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 border-l-4 border-l-red-500">
+                    <p class="text-xs text-red-600 uppercase font-black tracking-widest">Расходы</p>
+                    <h2 id="totalSpending" class="text-3xl font-black text-red-600 mt-1">0.00</h2>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="space-y-6">
+                    <section class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <h3 class="font-bold text-gray-700 mb-4">Новая транзакция</h3>
+                        <form id="transactionForm" class="space-y-3">
+                            <input name="name" placeholder="Описание" required class="w-full p-2 border rounded-lg text-sm">
+                            <div class="flex gap-2">
+                                <input name="price" type="number" step="0.01" placeholder="Сумма" required class="flex-1 p-2 border rounded-lg text-sm">
+                                <select name="currency" class="p-2 border rounded-lg text-xs font-bold bg-gray-50">
+                                    <option value="UAH">UAH</option>
+                                    <option value="RUB">RUB</option>
+                                    <option value="USD">USD</option>
+                                    <option value="EUR">EUR</option>
+                                    <option value="CZK">CZK</option>
+                                </select>
+                            </div>
+                            <select name="transaction" class="w-full p-2 border rounded-lg text-sm bg-gray-50">
+                                <option value="spending">Расход</option>
+                                <option value="income">Доход</option>
+                            </select>
+                            <select id="categorySelect" name="category_id" required class="w-full p-2 border rounded-lg text-sm bg-gray-50"></select>
+                            <button type="submit" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-black uppercase tracking-widest hover:bg-indigo-700 transition">Добавить</button>
+                        </form>
+                    </section>
+
+                    <section class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <h3 class="font-black text-gray-400 uppercase text-[10px] tracking-widest mb-4">Категории</h3>
+                        <div id="categoriesList" class="space-y-4 mb-6"></div>
+
+                        <div class="flex gap-2 mt-4 pt-4 border-t">
+                            <input id="newCatName" type="text" placeholder="Название..." class="flex-1 p-2 border rounded-lg text-sm">
+                            <button onclick="createCategory()" class="bg-indigo-600 text-white px-4 rounded-lg font-bold hover:bg-indigo-700 transition">+</button>
+                        </div>
+                    </section>
+                </div>
+
+                <div class="lg:col-span-2">
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div class="p-6 border-b flex justify-between items-center">
+                            <h3 class="font-black text-gray-700 uppercase text-xs tracking-widest">История операций</h3>
+                            <select id="typeFilter" class="text-[10px] p-1 border rounded bg-white font-bold uppercase text-gray-500" onchange="refreshAllData()">
+                                <option value="all">Все</option>
+                                <option value="spending">Расходы</option>
+                                <option value="income">Доходы</option>
+                            </select>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left">
+                                <tbody id="transactionTable" class="divide-y divide-gray-50"></tbody>
+                            </table>
+                        </div>
+                        <div id="scrollTrigger" class="p-8 text-center text-xs text-gray-400 font-bold uppercase tracking-widest">Загрузка...</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const API_BASE = "https://subjunior-kayson-euphemistically.ngrok-free.dev";
+        let isLoginMode = true;
+        let currentCursor = null;
+        let hasMore = true;
+        let isLoading = false;
+
+        const currencyMap = { "UAH": "₴", "RUB": "₽", "USD": "$", "EUR": "€", "CZK": "Kč" };
+
+        async function api(path, options = {}) {
+            try {
+                const res = await fetch(API_BASE + path, {
+                    ...options,
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true', ...options.headers }
+                });
+                return res;
+            } catch (e) { return { ok: false }; }
+        }
+
+        async function checkAuth() {
+            const res = await api('/user/');
+            if (res.ok) {
+                const user = await res.json();
+                document.getElementById('userNameDisplay').textContent = user.username;
+                document.getElementById('app').classList.remove('hidden');
+                document.getElementById('authModal').classList.add('hidden');
+                loadCategories(); refreshAllData(); setupInfiniteScroll();
+            } else {
+                document.getElementById('authModal').classList.remove('hidden');
+                document.getElementById('app').classList.add('hidden');
+            }
+        }
+
+        async function updateBalance() {
+            const curr = document.getElementById('displayCurrency').value;
+            const start = document.getElementById('startDate').value;
+            const end = document.getElementById('endDate').value;
+            let url = `/transaction/total?to_currency=${curr}`;
+            if (start) url += `&start=${start}`;
+            if (end) url += `&end=${end}`;
+
+            const res = await api(url);
+            if (res.ok) {
+                const data = await res.json();
+                const sym = currencyMap[data.currency] || data.currency;
+                const fmt = (v) => (v || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2 });
+
+                document.getElementById('totalBalance').innerHTML = `${fmt(data.balance)} <small class="text-gray-400">${sym}</small>`;
+                document.getElementById('totalIncome').innerHTML = `+ ${fmt(data.income)} <small class="text-green-400">${sym}</small>`;
+                document.getElementById('totalSpending').innerHTML = `- ${fmt(data.spending)} <small class="text-red-400">${sym}</small>`;
+
+                const catList = document.getElementById('categoriesList');
+                const catEntries = Object.entries(data.categories || {}).sort((a,b) => b[1] - a[1]);
+
+                if (catEntries.length > 0) {
+                    const max = Math.max(...catEntries.map(e => e[1]));
+                    catList.innerHTML = catEntries.map(([name, sum]) => `
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="font-bold text-gray-600">${name}</span>
+                                <span class="font-black">${fmt(sum)} ${sym}</span>
+                            </div>
+                            <div class="progress-bar"><div class="progress-fill" style="width: ${(sum/max)*100}%"></div></div>
+                        </div>
+                    `).join('');
+                } else {
+                    catList.innerHTML = '<p class="text-xs text-gray-400 italic text-center">Нет расходов за период</p>';
+                }
+            }
+        }
+
+        async function loadTransactions(init = false) {
+            if (isLoading || (!hasMore && !init)) return;
+            isLoading = true;
+            const type = document.getElementById('typeFilter').value;
+            const start = document.getElementById('startDate').value;
+            const end = document.getElementById('endDate').value;
+
+            let url = `/transaction/?limit=15&transaction_type=${type}`;
+            if (start) url += `&start=${start}`;
+            if (end) url += `&end=${end}`;
+            if (currentCursor && !init) {
+                url += `&cursor_time=${encodeURIComponent(currentCursor.cursor_time)}&cursor_id=${currentCursor.cursor_id}`;
+            }
+
+            const res = await api(url);
+            if (res.ok) {
+                const data = await res.json();
+                const rows = data.items.map(t => `
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="px-6 py-4 text-[9px] text-gray-400 font-bold uppercase">${new Date(t.created_at).toLocaleDateString()}</td>
+                        <td class="px-6 py-4 text-sm font-bold text-gray-700">${t.name}<br><small class="text-indigo-400 text-[9px] uppercase font-bold">${t.category_name || ''}</small></td>
+                        <td class="px-6 py-4 text-sm text-right font-black ${t.transaction === 'income' ? 'text-green-500' : 'text-red-500'}">
+                            ${t.transaction === 'income' ? '+' : '-'} ${t.price.toFixed(2)} ${currencyMap[t.currency] || t.currency}
+                        </td>
+                    </tr>
+                `).join('');
+
+                const table = document.getElementById('transactionTable');
+                if (init) table.innerHTML = rows; else table.innerHTML += rows;
+
+                currentCursor = data.next_cursor;
+                hasMore = data.has_more;
+                document.getElementById('scrollTrigger').textContent = hasMore ? "Загрузка..." : "Все операции загружены";
+            }
+            isLoading = false;
+        }
+
+        async function createCategory() {
+            const name = document.getElementById('newCatName').value;
+            if (!name) return;
+            const res = await api('/categories/', { method: 'POST', body: JSON.stringify({ name }) });
+            if (res.ok) { document.getElementById('newCatName').value = ''; loadCategories(); }
+        }
+
+        async function loadCategories() {
+            const res = await api('/categories/');
+            if (res.ok) {
+                const cats = await res.json();
+                document.getElementById('categorySelect').innerHTML = cats.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+            }
+        }
+
+        function toggleAuthMode() {
+            isLoginMode = !isLoginMode;
+            document.getElementById('authTitle').textContent = isLoginMode ? "Вход в FinFlow" : "Регистрация";
+            document.getElementById('authBtn').textContent = isLoginMode ? "Войти" : "Создать аккаунт";
+        }
+
+        async function logout() { await api('/auth/logout', { method: 'POST' }); window.location.reload(); }
+
+        document.getElementById('authForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const res = await api(isLoginMode ? '/auth/login' : '/auth/register', {
+                method: 'POST',
+                body: JSON.stringify(Object.fromEntries(new FormData(e.target)))
+            });
+            if (res.ok) checkAuth(); else alert("Ошибка!");
+        };
+
+        document.getElementById('transactionForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            const payload = Object.fromEntries(fd);
+            payload.price = parseFloat(payload.price);
+            payload.category_id = parseInt(payload.category_id);
+            const res = await api('/transaction/', { method: 'POST', body: JSON.stringify(payload) });
+            if (res.ok) { e.target.reset(); refreshAllData(); }
+        };
+
+        function setupInfiniteScroll() {
+            const obs = new IntersectionObserver(e => { if (e[0].isIntersecting) loadTransactions(); });
+            obs.observe(document.getElementById('scrollTrigger'));
+        }
+
+        function refreshAllData() { currentCursor = null; hasMore = true; updateBalance(); loadTransactions(true); }
+        function resetDates() { document.getElementById('startDate').value = ''; document.getElementById('endDate').value = ''; refreshAllData(); }
+
+        document.getElementById('startDate').onchange = refreshAllData;
+        document.getElementById('endDate').onchange = refreshAllData;
+
+        checkAuth();
+    </script>
+</body>
+</html>

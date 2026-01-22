@@ -1,11 +1,15 @@
+import datetime
+from typing import Optional
+
 from fastapi import APIRouter, status, Depends
 
 from core.dependencies import get_session, get_current_user
 from core.exceptions import CategoryNotFound
 from schemes.category import CategoryResponse, CategoryCreate, CategoryUpdate
-from schemes.transaction import TransactionResponse
+from schemes.pagination import PaginatedTransactionResponse
+from schemes.transaction import TransactionResponse, Calendar
 from services.categories import CategoryDAO
-from services.spending import TransactionDAO
+from services.transaction import TransactionDAO
 
 category_route = APIRouter(prefix="/categories", tags=["Categories"])
 
@@ -37,18 +41,26 @@ async def get_category_user(
 
 
 
-@category_route.get("/{category_id}", response_model=list[TransactionResponse], status_code=status.HTTP_200_OK)
-async def get_category(category_id: int,
-                       session=Depends(get_session),
-                       current_user=Depends(get_current_user)):
-    spendings = await TransactionDAO.read_transaction_category(
+@category_route.get("/{category_id}/transactions", response_model=PaginatedTransactionResponse)
+async def get_category_transactions(
+    category_id: int,
+    calendar: Calendar = Depends(),
+    limit: int = 15,
+    cursor_time: Optional[datetime.datetime] = None,
+    cursor_id: Optional[int] = None,
+    session=Depends(get_session),
+    current_user=Depends(get_current_user)
+):
+    # Используем твой новый универсальный метод
+    return await TransactionDAO.read_transaction_all(
         session=session,
-        category_id=category_id,
-        user_id=current_user.id
+        user_id=current_user.id,
+        category_id=category_id, # Фильтр по категории
+        calendar=calendar,
+        limit=limit,
+        cursor_time=cursor_time,
+        cursor_id=cursor_id
     )
-    if not spendings:
-        raise CategoryNotFound("No spendings for this category")
-    return spendings
 
 
 @category_route.patch("/{category_id}", response_model=CategoryResponse, status_code=status.HTTP_200_OK)
