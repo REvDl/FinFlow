@@ -81,6 +81,7 @@ async def list_spending(
     transaction: TransactionFilter = Depends(),
     calendar: Calendar = Depends(),
     # Параметры пагинации
+    category_id: Optional[int] = Query(None),
     limit: int = 20,
     cursor_time: Optional[datetime.datetime] = None,
     cursor_id: Optional[int] = None,
@@ -96,7 +97,8 @@ async def list_spending(
         limit=limit,
         cursor_time=cursor_time,
         cursor_id=cursor_id,
-        transaction_type=transaction.type
+        transaction_type=transaction.type,
+        category_id=category_id
     )
 
 

@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 from starlette import status
 
 from core.dependencies import get_current_user, get_session
+from core.exceptions import UserNotFound
 from schemes.user import UserResponse, UserUpdate
 from services.users import UserDAO
 
@@ -32,8 +33,10 @@ async def update_me(
 async def delete_me(
         session = Depends(get_session),
         current_user = Depends(get_current_user)):
-    await UserDAO.delete_user(
+    delete_user = await UserDAO.delete_user(
         session=session,
         user_id=current_user.id
     )
+    if not delete_user:
+        raise UserNotFound("User not found")
     await session.commit()

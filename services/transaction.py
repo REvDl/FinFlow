@@ -28,12 +28,11 @@ class TransactionDAO:
     async def read_transaction_one(session: AsyncSession, spending_id: int):
         return await session.get(TransactionOrm, spending_id)
 
-
     @staticmethod
     async def read_transaction_all(session: AsyncSession,
                                    calendar: Calendar,
                                    user_id: int,
-                                   limit:int = 20,
+                                   limit: int = 20,
                                    cursor_time: datetime.datetime | None = None,
                                    cursor_id: int | None = None,
                                    category_id: int | None = None,
@@ -223,6 +222,8 @@ class TransactionDAO:
             "categories": sorted_cats
         }
 
+
+    #перспективный юнец
     @staticmethod
     async def total_for_frontend(
             session: AsyncSession,
