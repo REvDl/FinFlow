@@ -5,7 +5,7 @@ from typing import Any, Coroutine, Sequence
 from sqlalchemy import select, delete, func, cast, Date, extract, tuple_, case
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from database.models import UserOrm, TransactionOrm, CategoriesOrm
+from database.models import UserOrm, TransactionOrm, CategoriesOrm, TransactionType
 from schemes.transaction import TransactionCreate, TransactionUpdate, Calendar, CurrencyModel
 from script import get_nbu_rates
 
@@ -48,7 +48,7 @@ class TransactionDAO:
             query = query.filter(TransactionOrm.category_id == category_id)
 
         if transaction_type != "all":
-            query = query.filter(TransactionOrm.transaction == transaction_type)
+            query = query.filter(TransactionOrm.transaction_type == transaction_type)
 
         query = TransactionDAO.date_calendar(query=query, calendar=calendar)
 
@@ -85,24 +85,6 @@ class TransactionDAO:
             "has_more": has_more,
         }
 
-    #этот метод уже не нужен, т.к метод выше решает то что делает нижний, но удалю его потом
-    @staticmethod
-    async def read_transaction_category(session: AsyncSession, category_id: int, user_id: int):
-        query = (
-            select(TransactionOrm)
-            # Добавляем колонку с именем категории и называем её как в Pydantic схеме
-            .add_columns(CategoriesOrm.name.label("category_name"))
-            .join(CategoriesOrm, TransactionOrm.category_id == CategoriesOrm.id)
-            .filter(TransactionOrm.category_id == category_id, TransactionOrm.user_id == user_id)
-            .order_by(TransactionOrm.created_at.desc())
-        )
-
-        result = await session.execute(query)
-        spendings = []
-        for spending_obj, cat_name in result.all():
-            spending_obj.category_name = cat_name
-            spendings.append(spending_obj)
-        return spendings
 
     @staticmethod
     async def update_transaction(session: AsyncSession, update: TransactionUpdate, spending_id: int):
@@ -153,76 +135,6 @@ class TransactionDAO:
         return query
 
 
-    #этот роут был заменен на total_for_frontend, был заменен перспективным юнцом
-    @staticmethod
-    async def total(
-            session: AsyncSession,
-            user_id: int,
-            calendar: Calendar,
-            redis_client,
-            http_client,
-            how_open: bool = False,
-            to_currency: str = "UAH",
-    ):
-        rates = await get_nbu_rates(redis_client, http_client)
-        target_rate = rates.get(to_currency.upper(), Decimal("1"))
-
-        query = (
-            select(TransactionOrm, CategoriesOrm.name)
-            .join(CategoriesOrm, TransactionOrm.category_id == CategoriesOrm.id)
-            .filter(TransactionOrm.user_id == user_id)
-        )
-        query = TransactionDAO.date_calendar(query, calendar)
-        result = await session.execute(query)
-        total_income = Decimal("0")
-        total_spending = Decimal("0")
-
-        # Чтобы не плодить пустые списки items, если how_open=False
-        def category_factory():
-            base = {"total": Decimal("0"), "income": Decimal("0"), "spending": Decimal("0")}
-            if how_open:
-                base["items"] = []
-            return base
-
-        categories_data = defaultdict(category_factory)
-        # Итерируемся напрямую по результату (экономим память)
-        for s, cat_name in result:
-            source_rate = rates.get(s.currency.upper() if s.currency else "UAH", Decimal("1"))
-            converted = round((s.price * source_rate) / target_rate, 2)
-            if s.transaction == "income":
-                total_income += converted
-                categories_data[cat_name]["income"] += converted
-            else:
-                total_spending += converted
-                categories_data[cat_name]["spending"] += converted
-            if how_open:
-                categories_data[cat_name]["items"].append({
-                    "name": s.name,
-                    "amount": converted,
-                    "type": s.transaction,
-                    "date": s.created_at.strftime("%d.%m.%Y")
-                })
-
-        # Считаем итого по каждой категории ПОСЛЕ цикла
-        for cat in categories_data.values():
-            cat["total"] = cat["income"] - cat["spending"]
-
-        # Сортируем один раз в самом конце
-        sorted_cats = dict(sorted(
-            categories_data.items(),
-            key=lambda x: x[1]["spending"],
-            reverse=True
-        ))
-
-        return {
-            "balance": total_income - total_spending,
-            "total_income": total_income,
-            "total_spending": total_spending,
-            "currency": to_currency.upper(),
-            "categories": sorted_cats
-        }
-
-
     #перспективный юнец
     @staticmethod
     async def total_for_frontend(
@@ -242,9 +154,9 @@ class TransactionDAO:
         converted_price = case(*transaction_currency, else_=TransactionOrm.price / target_rate)
         total_query = (
             select(
-                func.sum(case((TransactionOrm.transaction == "income", converted_price), else_=0)).label(
+                func.sum(case((TransactionOrm.transaction_type == TransactionType.income, converted_price), else_=0)).label(
                     "total_income"),
-                func.sum(case((TransactionOrm.transaction == "spending", converted_price), else_=0)).label(
+                func.sum(case((TransactionOrm.transaction_type == TransactionType.spending, converted_price), else_=0)).label(
                     "total_spending")
             )
             .filter(TransactionOrm.user_id == user_id)
@@ -256,7 +168,7 @@ class TransactionDAO:
                 func.sum(converted_price).label("sum")
             )
             .join(CategoriesOrm, TransactionOrm.category_id == CategoriesOrm.id)
-            .filter(TransactionOrm.user_id == user_id, TransactionOrm.transaction == "spending")
+            .filter(TransactionOrm.user_id == user_id, TransactionOrm.transaction_type == TransactionType.spending)
         )
         cat_query = TransactionDAO.date_calendar(cat_query, calendar).group_by(CategoriesOrm.name)
 

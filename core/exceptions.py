@@ -18,6 +18,7 @@ class AuthInvalidLoginOrPassword(FinFlowException): pass
 class TransactionNotFound(FinFlowException):pass
 class CategoryNotFound(FinFlowException):pass
 class UserNotFound(FinFlowException):pass
+class DataError(FinFlowException): pass
 
 ERROR_MAP: Dict[Type[FinFlowException], int] = {
     AuthUserAlreadyExists: status.HTTP_409_CONFLICT,
@@ -29,5 +30,6 @@ ERROR_MAP: Dict[Type[FinFlowException], int] = {
     TokenVerificationFailed: status.HTTP_401_UNAUTHORIZED,
     TransactionNotFound: status.HTTP_404_NOT_FOUND,
     CategoryNotFound: status.HTTP_404_NOT_FOUND,
-    UserNotFound: status.HTTP_404_NOT_FOUND
+    UserNotFound: status.HTTP_404_NOT_FOUND,
+    DataError: status.HTTP_422_UNPROCESSABLE_CONTENT,
 }

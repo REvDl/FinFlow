@@ -1,8 +1,9 @@
 import datetime
 import enum
 from typing import Annotated
-from sqlalchemy import String, Numeric, ForeignKey, Text, text, DateTime
+from sqlalchemy import String, Numeric, ForeignKey, Text, text, DateTime, Enum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.dialects.postgresql import ENUM
 from config import settings
 from database.base import Base
 from decimal import Decimal
@@ -21,8 +22,9 @@ class UserOrm(Base):
     id: Mapped[intpk]
     username: Mapped[str] = mapped_column(String(19), unique=True)
     hash_password: Mapped[str] = mapped_column(String(255))
-    spending: Mapped[list["TransactionOrm"]] = relationship(
-        back_populates="user"
+    transactions: Mapped[list["TransactionOrm"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan"
     )
     refresh_tokens: Mapped[list["RefreshTokenOrm"]] = relationship(
         back_populates="user",
@@ -34,30 +36,32 @@ class UserOrm(Base):
     )
 
 class TransactionType(str, enum.Enum):
-    INCOME = "income"
-    SPENDING = "spending"
+    income = "income"
+    spending = "spending"
 
 
 class TransactionOrm(Base):
-    __tablename__ = "spending"
+    __tablename__ = "transactions"
     id: Mapped[intpk]
     name: Mapped[str] = mapped_column(String(50))
     description: Mapped[str] = mapped_column(String(250), nullable=True)
     price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     category_id: Mapped[int] = mapped_column(ForeignKey("categories.id", ondelete="CASCADE"))
-    transaction: Mapped[str] = mapped_column(
-        String,
-        default=TransactionType.SPENDING,
-        server_default="spending"
+    transaction_type: Mapped[TransactionType] = mapped_column(
+        ENUM(TransactionType, name="transaction_type", create_type=False),
+        name="transaction_type",
+        default=TransactionType.spending,
+        server_default="spending",
+        nullable=False,
     )
     created_at: Mapped[created_at]
     currency: Mapped[str] = mapped_column(String(3), nullable=True)
     user: Mapped["UserOrm"] = relationship(
-        back_populates="spending",
+        back_populates="transactions",
     )
     category: Mapped["CategoriesOrm"] = relationship(
-        back_populates="spending"
+        back_populates="transactions"
     )
 
 
@@ -69,7 +73,7 @@ class CategoriesOrm(Base):
     user: Mapped["UserOrm"] = relationship(
         back_populates="categories",
     )
-    spending: Mapped[list["TransactionOrm"]] = relationship(
+    transactions: Mapped[list["TransactionOrm"]] = relationship(
         back_populates="category",
         cascade="all, delete-orphan"
     )

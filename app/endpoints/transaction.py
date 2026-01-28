@@ -15,29 +15,6 @@ transaction_route = APIRouter(
 
 
 
-
-# ---------- SMART_METHODS ----------
-
-#заменили перспективным юнцом...
-# @transaction_route.get("/total", status_code=status.HTTP_200_OK)
-# async def total(request: Request,
-#                 calendar: Calendar = Depends(),
-#                 currency_data: CurrencyModel = Depends(),
-#                 how_open: bool = False,
-#                 session=Depends(get_session),
-#                 current_user=Depends(get_current_user)):
-#     result = await TransactionDAO.total(
-#         session=session,
-#         user_id=current_user.id,
-#         how_open=how_open,
-#         calendar=calendar,
-#         to_currency=currency_data.to_currency,
-#         redis_client=request.app.state.redis,
-#         http_client=request.app.state.http_client
-#     )
-#     return result
-
-
 @transaction_route.get("/total", status_code=status.HTTP_200_OK)
 async def total(request: Request,
                 calendar: Calendar = Depends(),

@@ -5,6 +5,9 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field, condecimal, field_validator, model_validator, ConfigDict
 from dateutil import parser
 
+from core.exceptions import DataError
+from database.models import TransactionType
+
 
 class RussianParserInfo(parser.parserinfo):
     MONTHS = [
@@ -44,7 +47,7 @@ def parce_cyrrency(v: Any ):
         return CurrencyManager[clean_v]
     if clean_v.upper() in CurrencyManager.values():
         return clean_v.upper()
-    raise ValueError("В базе данных такой валюты нет")
+    raise DataError("В базе данных такой валюты нет")
 
 
 def parse_flexible_date(v):
@@ -59,7 +62,7 @@ def parse_flexible_date(v):
             try:
                 dt = parser.parse(v, dayfirst=True)
             except (parser.ParserError, ValueError):
-                raise ValueError(f"Формат даты не распознан: '{v}'")
+                raise DataError(f"Формат даты не распознан: '{v}'")
     if isinstance(dt, datetime.datetime):
         return dt.replace(tzinfo=None)
     return dt
@@ -73,7 +76,7 @@ class TransactionCreate(BaseModel):
     category_id: int
     created_at: datetime.datetime | None = Field(default_factory=lambda: datetime.datetime.now())
     currency: str | None
-    transaction: Literal["income", "spending"] = "spending"
+    transaction_type: Literal["income", "spending"] = "spending"
     @field_validator("currency", mode="before")
     @classmethod
     def parse_currency(cls, v):
@@ -95,7 +98,7 @@ class TransactionResponse(BaseModel):
     created_at: datetime.datetime
     model_config = ConfigDict(from_attributes=True)
     currency: str
-    transaction: str
+    transaction_type: str
 
 
 class TransactionUpdate(BaseModel):
@@ -105,7 +108,7 @@ class TransactionUpdate(BaseModel):
     category_id: int | None = None
     created_at: datetime.datetime | None = None
     currency: str | None = None
-    transaction: Literal["income", "spending"] | None
+    transaction_type: TransactionType | None
     @field_validator("currency", mode="before")
     @classmethod
     def parse_currency(cls, v):
@@ -132,7 +135,7 @@ class Calendar(BaseModel):
     @model_validator(mode="after")
     def check_date(self):
         if self.start and self.end and self.end < self.start:
-            raise ValueError("End date cannot be earlier than the start date")
+            raise DataError("End date cannot be earlier than the start date")
         return self
 
 

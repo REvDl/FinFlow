@@ -14,17 +14,11 @@ from database.base import AsyncOrm
 from database.engine import async_engine
 from fastapi.middleware.cors import CORSMiddleware
 
-async def init_db():
-    async_engine.echo = False
-    await AsyncOrm.drop_tables()
-    await AsyncOrm.create_tables()
-    print("\033[32mINFO:\033[0m     Database reset and created successfully")
-    async_engine.echo = True
+
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await init_db()
     app.state.http_client = httpx.AsyncClient()
     app.state.redis = redis.Redis(
         host=settings.REDIS_HOST,
@@ -45,7 +39,7 @@ app = FastAPI(lifespan=lifespan)
 origins = [
     "http://localhost:63342",
     "http://127.0.0.1:63342",
-    "http://localhost:5500",  # На случай использования Live Server в VS Code
+    "http://localhost:5500",
     "http://127.0.0.1:5500",
 ]
 
