@@ -4,7 +4,6 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
-
 from config import settings
 from database.base import Base
 from database.models import UserOrm, TransactionOrm, CategoriesOrm, RefreshTokenOrm

@@ -25,6 +25,8 @@ async def lifespan(app: FastAPI):
         port=settings.REDIS_PORT,
         decode_responses=True,
         max_connections=10,
+        socket_timeout=0.05,
+        socket_connect_timeout=0.05
     )
     try:
         yield
