@@ -32,6 +32,7 @@ async def lifespan(app: FastAPI):
     finally:
         await app.state.redis.close()
         await app.state.http_client.aclose()
+        await async_engine.dispose()
         print("\033[32mINFO:\033[0m     Resources closed successfully")
 
 
