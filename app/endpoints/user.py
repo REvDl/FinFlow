@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from starlette import status
 
 from core.dependencies import get_current_user, get_session
-from core.exceptions import UserNotFound
+from core.exceptions import UserNotFound, UserAlreadyExists, TokenInvalid
 from schemes.user import UserResponse, UserUpdate
 from services.users import UserDAO
 
@@ -19,14 +19,16 @@ async def update_me(
         user:UserUpdate,
         current_user = Depends(get_current_user),
         session = Depends(get_session)):
-    update = await UserDAO.update_user(
+    update_user = await UserDAO.update_user(
         session=session,
         user_id=current_user.id,
         user_update = user
     )
+    if not update_user:
+        raise TokenInvalid("User no longer exists")
     await session.commit()
-    await session.refresh(update)
-    return update
+    await session.refresh(update_user)
+    return update_user
 
 
 @user_route.delete("/", status_code=status.HTTP_204_NO_CONTENT)

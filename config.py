@@ -19,9 +19,15 @@ class Settings(BaseSettings):
     CACHE_TTL:int
     REDIS_HOST:str
     REDIS_PORT:int
+    TEST_DB_NAME:str
+
     @property
     def DATABASE_URL_asyncpg(self):
         return f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASSWORD.get_secret_value()}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+
+    @property
+    def DATABASE_TEST_URL_asyncpg(self):
+        return f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASSWORD.get_secret_value()}@{self.DB_HOST}:{self.DB_PORT}/{self.TEST_DB_NAME}"
 
     model_config = SettingsConfigDict(
         env_file = os.path.join(os.path.dirname(__file__), ".env")

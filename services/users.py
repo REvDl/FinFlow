@@ -1,5 +1,7 @@
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
+from core.exceptions import UserAlreadyExists
 from database.models import UserOrm
 from core.security import hash_password
 from schemes.user import UserCreate, UserUpdate
@@ -35,8 +37,14 @@ class UserDAO:
                 setattr(user, "hash_password", hash_password(value))
             elif hasattr(user, key):
                 setattr(user, key, value)
-        await session.flush()
-        return user
+        try:
+            await session.flush()
+            return user
+        except IntegrityError:
+            await session.rollback()
+            raise UserAlreadyExists("Username is already taken")
+
+
 
     @staticmethod
     async def delete_user(session: AsyncSession, user_id:int):

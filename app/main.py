@@ -10,11 +10,10 @@ from app.endpoints.transaction import transaction_route
 from app.endpoints.user import user_route
 from config import settings
 from core.exceptions import ERROR_MAP, FinFlowException
+from database.engine import async_engine, async_session_factory
 from database.base import AsyncOrm
-from database.engine import async_engine
 from fastapi.middleware.cors import CORSMiddleware
-
-
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 
 @asynccontextmanager
