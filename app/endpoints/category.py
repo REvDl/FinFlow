@@ -51,7 +51,7 @@ async def get_category_transactions(
     session=Depends(get_session),
     current_user=Depends(get_current_user)
 ):
-    # Используем твой новый универсальный метод
+
     return await TransactionDAO.read_transaction_all(
         session=session,
         user_id=current_user.id,

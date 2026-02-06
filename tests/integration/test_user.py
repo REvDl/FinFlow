@@ -11,8 +11,9 @@ from core.dependencies import get_session
 from schemes.user import UserCreate
 from database.models import UserOrm, TransactionOrm, RefreshTokenOrm, CategoriesOrm
 from services.users import UserDAO
-from tests.conftest import TEST_USER
 
+
+TEST_USER = {"username": "test_user", "password": "test_password"}
 UPDATE_USER = {"username": "update_test_user"}
 
 

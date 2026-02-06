@@ -9,8 +9,9 @@ from app.main import app
 from database.base import Base
 from core.dependencies import get_session
 from config import settings
-
-TEST_USER = {"username": "test_user", "password": "test_password"}
+from tests.integration.test_categories import CATEGORY
+from tests.integration.test_transactions import TRANSACTION
+from tests.integration.test_user import TEST_USER
 
 # Глобальный флаг, чтобы не пересоздавать таблицы для каждого теста
 _tables_initialized = False
@@ -64,5 +65,23 @@ async def authorized_user(client):
     token = data["tokens"]["access_token"]
     client.headers.update({"Authorization": f"Bearer {token}"})
     client.user_data = data["user"]
-
     yield client
+
+
+@pytest_asyncio.fixture(scope="function")
+async def category_create(authorized_user):
+    category = await authorized_user.post("/categories/", json=CATEGORY)
+    data = category.json()
+    yield data
+    await authorized_user.delete(f"/categories/{data['id']}")
+
+
+@pytest_asyncio.fixture(scope="function")
+async def create_transaction(authorized_user, category_create):
+    transaction_data = TRANSACTION.copy()
+    transaction_data["category_id"] = category_create["id"]
+    transaction = await authorized_user.post("/transaction/", json=transaction_data)
+    assert transaction.status_code == 201
+    data = transaction.json()
+    yield data
+    await authorized_user.delete(f"/transaction/{data['id']}")
