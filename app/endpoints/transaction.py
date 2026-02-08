@@ -57,16 +57,13 @@ async def list_spending(
     # Фильтры (тип транзакции, даты из календаря)
     transaction: TransactionFilter = Depends(),
     calendar: Calendar = Depends(),
-    # Параметры пагинации
     category_id: Optional[int] = Query(None),
     limit: int = 20,
     cursor_time: Optional[datetime.datetime] = None,
     cursor_id: Optional[int] = None,
-    # Зависимости
     session=Depends(get_session),
     current_user=Depends(get_current_user)
 ):
-    # Вызываем метод DAO, который мы написали ранее
     return await TransactionDAO.read_transaction_all(
         session=session,
         user_id=current_user.id,
@@ -101,7 +98,7 @@ async def get_spending(
         spending_id=spending_id
     )
     if not spending or spending.user_id != current_user.id:
-        raise TransactionNotFound("Spending not found")
+        raise TransactionNotFound("Transaction not found")
     return spending
 
 
@@ -112,8 +109,14 @@ async def update_spending(spending_id: int,
                           current_user=Depends(get_current_user)):
     spending = await TransactionDAO.read_transaction_one(session, spending_id)
     if not spending or spending.user_id != current_user.id:
-        raise TransactionNotFound("Spending not found")
-
+        raise TransactionNotFound("Transaction not found")
+    if update.category_id is not None:
+        category = await CategoryDAO.get_by_id(
+            session=session,
+            category_id=update.category_id
+        )
+        if not category:
+            raise CategoryNotFound("Category not found")
     updated = await TransactionDAO.update_transaction(
         session=session,
         update=update,
@@ -130,7 +133,7 @@ async def delete_spending(spending_id: int,
                           current_user=Depends(get_current_user)):
     spending = await TransactionDAO.read_transaction_one(session, spending_id)
     if not spending or spending.user_id != current_user.id:
-        raise TransactionNotFound("Spending not found")
+        raise TransactionNotFound("Transaction not found")
 
     await TransactionDAO.delete_transaction_one(
         session=session,

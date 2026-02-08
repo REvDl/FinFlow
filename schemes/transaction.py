@@ -29,7 +29,7 @@ CurrencyManager = {
     "uah": "UAH", "гривна": "UAH", "грн": "UAH", "₴": "UAH",
     "eur": "EUR", "евро": "EUR", "€": "EUR",
     "czk": "CZK", "крона": "CZK", "крон": "CZK", "kc": "CZK",
-    "rub": "RUB", "рубль": "RUB", "рубли": "RUB", "₽": "RUB"
+    "rub": "RUB", "рубль": "RUB", "рубли": "RUB", "₽": "RUB", "руб": "RUB",
 }
 
 
@@ -108,7 +108,7 @@ class TransactionUpdate(BaseModel):
     category_id: int | None = None
     created_at: datetime.datetime | None = None
     currency: str | None = None
-    transaction_type: TransactionType | None
+    transaction_type: TransactionType | None = None
     @field_validator("currency", mode="before")
     @classmethod
     def parse_currency(cls, v):

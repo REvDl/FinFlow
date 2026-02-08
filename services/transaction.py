@@ -16,7 +16,6 @@ class TransactionDAO:
         new_spending = TransactionOrm(**spending.model_dump(), user_id=user_id)
         session.add(new_spending)
         await session.flush()
-        # чтоб выводилось и название категории
         query = select(CategoriesOrm.name).filter_by(id=new_spending.category_id)
         result = await session.execute(query)
         cat_name = result.scalar_one_or_none()
