@@ -66,7 +66,7 @@ async def fin_flow_exception(request: Request, exc: FinFlowException):
 async def request_validation_exception(request: Request, exc: RequestValidationError):
     error_message = exc.errors()[0]
     return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         content={
             "detail": error_message.get("msg")
         }

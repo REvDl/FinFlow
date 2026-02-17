@@ -7,6 +7,9 @@ from schemes.pagination import PaginatedTransactionResponse
 from schemes.transaction import TransactionCreate, TransactionResponse, TransactionUpdate, Calendar, CurrencyModel, TransactionFilter
 from services.categories import CategoryDAO
 from services.transaction import TransactionDAO
+from limiter.limiter import limiter
+
+
 
 transaction_route = APIRouter(
     prefix="/transaction",
@@ -16,6 +19,7 @@ transaction_route = APIRouter(
 
 
 @transaction_route.get("/total", status_code=status.HTTP_200_OK)
+@limiter.limit("5/minute")
 async def total(request: Request,
                 calendar: Calendar = Depends(),
                 currency_data: CurrencyModel = Depends(),
@@ -34,7 +38,9 @@ async def total(request: Request,
 # ---------- COLLECTION ----------
 
 @transaction_route.post("/", response_model=TransactionResponse, status_code=status.HTTP_201_CREATED)
+@limiter.limit("10/minute")
 async def create_spending(
+        request: Request,
         spending: TransactionCreate,
         session=Depends(get_session),
         current_user=Depends(get_current_user)):
@@ -53,8 +59,9 @@ async def create_spending(
 
 
 @transaction_route.get("/", response_model=PaginatedTransactionResponse)
+@limiter.limit("20/minute")
 async def list_spending(
-    # Фильтры (тип транзакции, даты из календаря)
+    request: Request,
     transaction: TransactionFilter = Depends(),
     calendar: Calendar = Depends(),
     category_id: Optional[int] = Query(None),

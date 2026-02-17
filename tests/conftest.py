@@ -1,20 +1,40 @@
 import asyncio
+import datetime
+import json
+
+import httpx
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.pool import NullPool
-from app.main import app
+from app.main import app, lifespan
 from database.base import Base
 from core.dependencies import get_session
 from config import settings
 from tests.integration.test_categories import CATEGORY
 from tests.integration.test_transactions import TRANSACTION
 from tests.integration.test_user import TEST_USER
-
+import fakeredis
 # Глобальный флаг, чтобы не пересоздавать таблицы для каждого теста
 _tables_initialized = False
+
+@pytest_asyncio.fixture(scope="function", autouse=True)
+def redis_server():
+    fake = fakeredis.aioredis.FakeRedis()
+    app.state.redis = fake
+    return fake
+
+@pytest_asyncio.fixture()
+async def currency_redis(redis_server):
+    fake_rates = {
+        "USD": "40.0",
+        "EUR": "50.0",
+        "UAH": "1.0"
+    }
+    await redis_server.set(settings.CACHE_KEY, json.dumps(fake_rates))
+
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -37,14 +57,13 @@ async def async_engine():
     await engine.dispose()
 
 
+
 @pytest_asyncio.fixture(scope="function")
 async def session(async_engine):
     async with async_engine.connect() as connection:
-        #транзакция для отката
         transaction = await connection.begin()
         async with AsyncSession(connection, expire_on_commit=False) as session:
             yield session
-            # Откатываем данные, но таблицы не трогаем
             await transaction.rollback()
 
 
@@ -52,6 +71,7 @@ async def session(async_engine):
 async def client(session):
     app.dependency_overrides[get_session] = lambda: session
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        app.state.http_client = ac
         yield ac
     app.dependency_overrides.clear()
 
@@ -85,3 +105,19 @@ async def create_transaction(authorized_user, category_create):
     data = transaction.json()
     yield data
     await authorized_user.delete(f"/transaction/{data['id']}")
+
+
+@pytest_asyncio.fixture(scope="function")
+async def create_multiple_transaction(authorized_user, category_create):
+    data = []
+    base_date = datetime.datetime.fromisoformat(TRANSACTION["created_at"])
+    for i in range(10):
+        transaction_data = TRANSACTION.copy()
+        transaction_data["category_id"] = category_create["id"]
+        new_date = base_date + datetime.timedelta(days=i)
+        transaction_data["created_at"] = new_date.isoformat()
+        transaction = await authorized_user.post("/transaction/", json=transaction_data)
+        assert transaction.status_code == 201
+        data.append(transaction.json())
+    yield data
+    await authorized_user.delete(f"/transaction/")

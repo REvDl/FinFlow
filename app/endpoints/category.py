@@ -1,7 +1,6 @@
 import datetime
 from typing import Optional
-
-from fastapi import APIRouter, status, Depends
+from fastapi import APIRouter, status, Depends, Request
 
 from core.dependencies import get_session, get_current_user
 from core.exceptions import CategoryNotFound
@@ -10,12 +9,14 @@ from schemes.pagination import PaginatedTransactionResponse
 from schemes.transaction import TransactionResponse, Calendar
 from services.categories import CategoryDAO
 from services.transaction import TransactionDAO
-
+from limiter.limiter import limiter
 category_route = APIRouter(prefix="/categories", tags=["Categories"])
 
 
 @category_route.post("/", response_model=CategoryResponse, status_code=status.HTTP_201_CREATED)
-async def create_category(category_data: CategoryCreate,
+@limiter.limit("5/minute")
+async def create_category(request:Request,
+                          category_data: CategoryCreate,
                           session=Depends(get_session),
                           current_user=Depends(get_current_user)):
     category = await CategoryDAO.create_category(
@@ -42,7 +43,9 @@ async def get_category_user(
 
 
 @category_route.get("/{category_id}/transactions", response_model=PaginatedTransactionResponse)
+@limiter.limit("20/minute")
 async def get_category_transactions(
+    request:Request,
     category_id: int,
     calendar: Calendar = Depends(),
     limit: int = 15,

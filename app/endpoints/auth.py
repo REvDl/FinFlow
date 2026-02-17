@@ -7,12 +7,14 @@ from schemes.user import UserCreate, UserResponse, UserLogin
 from services.auth import AuthService
 from services.refresh import RefreshTokenDAO
 from services.users import UserDAO
-
+from limiter.limiter import limiter
+from fastapi import Request
 auth_route = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 @auth_route.post("/register", status_code=status.HTTP_201_CREATED)
-async def register(response: Response, user_data: UserCreate, session=Depends(get_session)):
+@limiter.limit("3/minute")
+async def register(request:Request, response: Response, user_data: UserCreate, session=Depends(get_session)):
     new_user = await AuthService.register(session, user_data)
     await session.commit()
     await session.refresh(new_user["user"])
@@ -24,7 +26,8 @@ async def register(response: Response, user_data: UserCreate, session=Depends(ge
 
 
 @auth_route.post("/login", status_code=status.HTTP_200_OK)
-async def login(response: Response, user_data: UserLogin, session=Depends(get_session)):
+@limiter.limit("3/minute")
+async def login(request:Request, response: Response, user_data: UserLogin, session=Depends(get_session)):
     user = await AuthService.login(session, user_data)
     await session.commit()
     await session.refresh(user["user"])

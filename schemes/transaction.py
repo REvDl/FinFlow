@@ -1,7 +1,6 @@
 import datetime
 from decimal import Decimal
 from typing import Any, Literal
-
 from pydantic import BaseModel, Field, condecimal, field_validator, model_validator, ConfigDict
 from dateutil import parser
 
@@ -33,13 +32,9 @@ CurrencyManager = {
 }
 
 
-class CurrencyModel(BaseModel):
-    to_currency: Literal["UAH", "RUB", "EUR", "USD", "CZK"] = "UAH"
-
 RU_INFO = RussianParserInfo()
 
-
-def parce_cyrrency(v: Any ):
+def parce_cyrrency_parent(v: Any):
     if not v:
         return "UAH"
     clean_v = str(v.strip().lower())
@@ -68,6 +63,14 @@ def parse_flexible_date(v):
     return dt
 
 
+class CurrencyModel(BaseModel):
+    to_currency: Literal["UAH", "RUB", "EUR", "USD", "CZK"] = "UAH"
+    @field_validator("to_currency", mode="before")
+    @classmethod
+    def parce_currency(cls, v):
+        return parce_cyrrency_parent(v)
+
+
 
 class TransactionCreate(BaseModel):
     name: str = Field(..., max_length=50)
@@ -79,8 +82,8 @@ class TransactionCreate(BaseModel):
     transaction_type: Literal["income", "spending"] = "spending"
     @field_validator("currency", mode="before")
     @classmethod
-    def parse_currency(cls, v):
-        return parce_cyrrency(v)
+    def parce_currency(cls, v):
+        return parce_cyrrency_parent(v)
     @field_validator("created_at", mode="before")
     @classmethod
     def parse_date(cls, v):
@@ -104,15 +107,15 @@ class TransactionResponse(BaseModel):
 class TransactionUpdate(BaseModel):
     name: str | None = Field(default=None, max_length=50)
     description: str | None = Field(default=None, max_length=250)
-    price: Decimal | None = None
+    price: condecimal(gt=0, max_digits=20, decimal_places=2) | None = None
     category_id: int | None = None
     created_at: datetime.datetime | None = None
     currency: str | None = None
     transaction_type: TransactionType | None = None
     @field_validator("currency", mode="before")
     @classmethod
-    def parse_currency(cls, v):
-        return parce_cyrrency(v)
+    def parce_currency(cls, v):
+        return parce_cyrrency_parent(v)
     @field_validator("created_at", mode="before")
     @classmethod
     def validate_date(cls, v):
@@ -123,8 +126,8 @@ class TransactionUpdate(BaseModel):
 
 
 class Calendar(BaseModel):
-    start: datetime.date | None = Field(default=None, description="Дата от")
-    end: datetime.date | None = Field(default=None, description="Дата до")
+    start: Any | None = Field(default=None, description="Дата от")
+    end: Any | None = Field(default=None, description="Дата до")
     @field_validator("start", "end", mode="before")
     @classmethod
     def validate_start_end(cls, v):
