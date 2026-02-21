@@ -14,6 +14,12 @@ from database.engine import async_engine, async_session_factory
 from database.base import AsyncOrm
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+from redis.retry import Retry
+from redis.backoff import NoBackoff
+
+
+no_retry = Retry(backoff=NoBackoff(), retries=0)
+
 
 
 @asynccontextmanager
@@ -25,7 +31,8 @@ async def lifespan(app: FastAPI):
         decode_responses=True,
         max_connections=10,
         socket_timeout=0.05,
-        socket_connect_timeout=0.05
+        socket_connect_timeout=0.05,
+        retry=no_retry
     )
     try:
         yield

@@ -1,7 +1,6 @@
 import asyncio
 import datetime
 import json
-
 import httpx
 import pytest
 import pytest_asyncio
@@ -17,8 +16,19 @@ from tests.integration.test_categories import CATEGORY
 from tests.integration.test_transactions import TRANSACTION
 from tests.integration.test_user import TEST_USER
 import fakeredis
+from unittest.mock import patch
 # Глобальный флаг, чтобы не пересоздавать таблицы для каждого теста
 _tables_initialized = False
+
+
+@pytest.fixture(scope="function")
+def disable_limiter_properly():
+    from limiter.limiter import limiter
+    original_state = limiter.enabled
+    limiter.enabled = False
+    yield
+    limiter.enabled = original_state
+
 
 @pytest_asyncio.fixture(scope="function", autouse=True)
 def redis_server():
@@ -36,25 +46,26 @@ async def currency_redis(redis_server):
     await redis_server.set(settings.CACHE_KEY, json.dumps(fake_rates))
 
 
-
+_shared_engine = None
 @pytest_asyncio.fixture(scope="function")
 async def async_engine():
-    global _tables_initialized
-    engine = create_async_engine(
-        settings.DATABASE_TEST_URL_asyncpg,
-        poolclass=NullPool
-    )
-    #если таблицы еще не создавали, то вот щас создадим
+    global _tables_initialized, _shared_engine
+    if _shared_engine is None:
+        _shared_engine = create_async_engine(
+            settings.DATABASE_TEST_URL_asyncpg,
+            poolclass=NullPool
+        )
+
+    # Таблицы тоже только один раз
     if not _tables_initialized:
-        async with engine.begin() as conn:
+        async with _shared_engine.begin() as conn:
             await conn.run_sync(Base.metadata.drop_all)
             await conn.execute(text("DROP TYPE IF EXISTS transaction_type CASCADE;"))
             await conn.execute(text("CREATE TYPE transaction_type AS ENUM ('spending', 'income');"))
             await conn.run_sync(Base.metadata.create_all)
         _tables_initialized = True
 
-    yield engine
-    await engine.dispose()
+    yield _shared_engine
 
 
 
@@ -77,7 +88,7 @@ async def client(session):
 
 
 @pytest_asyncio.fixture(scope="function")
-async def authorized_user(client):
+async def authorized_user(client, disable_limiter_properly):
     await client.post("/auth/register", json=TEST_USER)
     login_res = await client.post("/auth/login", json=TEST_USER)
 
@@ -92,8 +103,7 @@ async def authorized_user(client):
 async def category_create(authorized_user):
     category = await authorized_user.post("/categories/", json=CATEGORY)
     data = category.json()
-    yield data
-    await authorized_user.delete(f"/categories/{data['id']}")
+    return data
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -103,12 +113,11 @@ async def create_transaction(authorized_user, category_create):
     transaction = await authorized_user.post("/transaction/", json=transaction_data)
     assert transaction.status_code == 201
     data = transaction.json()
-    yield data
-    await authorized_user.delete(f"/transaction/{data['id']}")
+    return data
 
 
 @pytest_asyncio.fixture(scope="function")
-async def create_multiple_transaction(authorized_user, category_create):
+async def create_multiple_transaction(authorized_user, category_create, disable_limiter_properly):
     data = []
     base_date = datetime.datetime.fromisoformat(TRANSACTION["created_at"])
     for i in range(10):
@@ -119,5 +128,4 @@ async def create_multiple_transaction(authorized_user, category_create):
         transaction = await authorized_user.post("/transaction/", json=transaction_data)
         assert transaction.status_code == 201
         data.append(transaction.json())
-    yield data
-    await authorized_user.delete(f"/transaction/")
+    return data

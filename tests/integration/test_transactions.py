@@ -1,6 +1,5 @@
 from decimal import Decimal
 from http.client import responses
-
 import pytest
 from datetime import datetime, timezone
 
@@ -124,7 +123,8 @@ class TestRead:
 
     async def test_read_balance_success(self, authorized_user, create_multiple_transaction, currency_redis):
         params = {"to_currency": "EUR"}
-        transaction = {**TRANSACTION, "price": 100, "transaction_type":"income"}
+        real_id = create_multiple_transaction[0]['category_id']
+        transaction = {**TRANSACTION, "price": 100, "transaction_type": "income", "category_id": real_id}
         response_transaction = await authorized_user.post("/transaction/", json=transaction)
         assert response_transaction.status_code == 201
         response = await authorized_user.get("/transaction/total", params=params)

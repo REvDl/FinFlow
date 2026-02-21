@@ -6,7 +6,6 @@ from config import settings
 import json
 
 
-
 async def nbu_update(redis_client: redis.Redis, http_client: httpx.AsyncClient):
     """парсит валюту банка"""
     try:
@@ -26,7 +25,6 @@ async def nbu_update(redis_client: redis.Redis, http_client: httpx.AsyncClient):
 
     except Exception as e:
         print(f"API/Network error: {e}")
-
 
 
 
