@@ -19,7 +19,7 @@ transaction_route = APIRouter(
 
 
 @transaction_route.get("/total", status_code=status.HTTP_200_OK)
-@limiter.limit("5/minute")
+@limiter.limit("50/minute")
 async def total(request: Request,
                 calendar: Calendar = Depends(),
                 currency_data: CurrencyModel = Depends(),
