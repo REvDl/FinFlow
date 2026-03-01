@@ -53,7 +53,6 @@ def parse_flexible_date(v):
         try:
             dt = parser.parse(v, dayfirst=True, parserinfo=RU_INFO)
         except (parser.ParserError, ValueError):
-            # Фолбек на стандартный парсер (ISO и прочее)
             try:
                 dt = parser.parse(v, dayfirst=True)
             except (parser.ParserError, ValueError):
