@@ -1,2 +1,3 @@
 * -text
-frontend/** linguist-vendored
+frontend/**/*.ts linguist-documentation
+frontend/**/*.tsx linguist-documentation
