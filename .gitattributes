@@ -1,3 +1,12 @@
 * -text
-frontend/**/*.ts linguist-documentation
-frontend/**/*.tsx linguist-documentation
+frontend/node_modules/** linguist-vendored
+frontend/dist/** linguist-vendored
+frontend/build/** linguist-vendored
+
+frontend/src/types/generated/** linguist-vendored
+
+*.ts linguist-detectable=true
+*.tsx linguist-detectable=true
+
+**/alembic/versions/*.py linguist-detectable=true
+**/*.mako linguist-detectable=true
