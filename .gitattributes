@@ -1,12 +1,10 @@
 * -text
-frontend/node_modules/** linguist-vendored
-frontend/dist/** linguist-vendored
-frontend/build/** linguist-vendored
+frontend/**/*.ts linguist-generated
+frontend/**/*.tsx linguist-generated
+frontend/**/*.css linguist-generated
 
-frontend/src/types/generated/** linguist-vendored
-
-*.ts linguist-detectable=true
-*.tsx linguist-detectable=true
-
-**/alembic/versions/*.py linguist-detectable=true
+*.py linguist-detectable=true
 **/*.mako linguist-detectable=true
+**/alembic/versions/*.py linguist-detectable=true
+
+frontend/node_modules/** linguist-vendored
