@@ -30,10 +30,15 @@ async def lifespan(app: FastAPI):
         port=settings.REDIS_PORT,
         decode_responses=True,
         max_connections=10,
-        socket_timeout=0.05,
-        socket_connect_timeout=0.05,
+        socket_timeout=5.0,
+        socket_connect_timeout=5.0,
         retry=no_retry
     )
+    try:
+        await app.state.redis.ping()
+        print("Redis connected")
+    except Exception as e:
+        print(f"Failed connected: {e}")
     try:
         yield
     finally:
