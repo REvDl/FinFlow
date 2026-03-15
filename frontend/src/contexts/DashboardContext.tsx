@@ -14,6 +14,7 @@ interface DashboardContextType {
   setCurrency: (currency: Currency) => void;
   dateRange: DateRange;
   setDateRange: (range: DateRange) => void;
+  setAllTime: () => void; // Добавили метод в интерфейс
   transactionFilter: TransactionFilter;
   setTransactionFilter: (filter: TransactionFilter) => void;
   selectedCategoryId: number | null;
@@ -39,6 +40,17 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
   const formatDateForAPI = (date: Date) => format(date, "yyyy-MM-dd");
 
+  // Реализация функции "За все время"
+  const setAllTime = () => {
+    const farFuture = new Date();
+    farFuture.setFullYear(2030); // Ставим 2030 год, чтобы видеть всё "будущее"
+
+    setDateRange({
+      start: new Date(2000, 0, 1),
+      end: farFuture,
+    });
+  };
+
   return (
     <DashboardContext.Provider
       value={{
@@ -46,6 +58,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         setCurrency,
         dateRange,
         setDateRange,
+        setAllTime, // Прокидываем в провайдер
         transactionFilter,
         setTransactionFilter,
         selectedCategoryId,

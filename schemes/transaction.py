@@ -48,18 +48,24 @@ def parce_cyrrency_parent(v: Any):
 def parse_flexible_date(v):
     if v is None or (isinstance(v, str) and not v.strip()):
         return None
-    dt = v
+
     if isinstance(v, str):
+        if "-" in v:
+            try:
+                return parser.parse(v).replace(tzinfo=None)
+            except:
+                pass
         try:
             dt = parser.parse(v, dayfirst=True, parserinfo=RU_INFO)
+            return dt.replace(tzinfo=None)
         except (parser.ParserError, ValueError):
             try:
-                dt = parser.parse(v, dayfirst=True)
-            except (parser.ParserError, ValueError):
+                return parser.parse(v, dayfirst=True).replace(tzinfo=None)
+            except:
                 raise DataError(f"Формат даты не распознан: '{v}'")
-    if isinstance(dt, datetime.datetime):
-        return dt.replace(tzinfo=None)
-    return dt
+    if isinstance(v, datetime.datetime):
+        return v.replace(tzinfo=None)
+    return v
 
 
 class CurrencyModel(BaseModel):
@@ -76,7 +82,7 @@ class TransactionCreate(BaseModel):
     description: str | None = Field(default=None, max_length=250)
     price: condecimal(gt=0, max_digits=20, decimal_places=2)
     category_id: int
-    created_at: datetime.datetime | None = Field(default_factory=lambda: datetime.datetime.now())
+    created_at: datetime.datetime | None = Field(default=None)
     currency: str | None
     transaction_type: Literal["income", "spending"] = "spending"
     @field_validator("currency", mode="before")
