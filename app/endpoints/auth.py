@@ -52,8 +52,13 @@ async def refresh(response: Response,
     if not user:
         raise UserNotFound("User not found")
     await session.delete(token)
-    set_auth_cookies(response, user["tokens"])
-    return await AuthService.create_session(session=session, user=user)
+    new_session = await AuthService.create_session(session=session, user=user)
+    set_auth_cookies(response, new_session)
+    await session.commit()
+    return {
+        "user": user,
+        "tokens": new_session
+    }
 
 
 @auth_route.post("/logout")

@@ -38,7 +38,7 @@ async def total(request: Request,
 # ---------- COLLECTION ----------
 
 @transaction_route.post("/", response_model=TransactionResponse, status_code=status.HTTP_201_CREATED)
-@limiter.limit("10/minute")
+@limiter.limit("100/minute")
 async def create_spending(
         request: Request,
         spending: TransactionCreate,
