@@ -29,7 +29,8 @@ const currencies: { value: Currency; label: string; symbol: string }[] = [
 
 export function Header() {
   const { user, logout, setShowAuthModal } = useAuth();
-  const { currency, setCurrency, dateRange, setDateRange } = useDashboard();
+  // Достаем нужные методы из контекста дашборда
+  const { currency, setCurrency, dateRange, setDateRange, setAllTime } = useDashboard();
 
   // Состояние темной темы
   const [isDark, setIsDark] = React.useState(false);
@@ -117,15 +118,24 @@ export function Header() {
                 numberOfMonths={2}
                 className="dark:bg-slate-950 dark:text-white rounded-md"
               />
-              <div className="border-t p-3 bg-gray-50/50 dark:bg-slate-900/50 dark:border-slate-800">
+              {/* Исправленный блок кнопок: теперь они в один ряд */}
+              <div className="flex items-center gap-2 border-t p-3 bg-gray-50/50 dark:bg-slate-900/50 dark:border-slate-800">
                 <Button
                   variant="secondary"
                   size="sm"
-                  className="w-full text-[10px] font-black uppercase tracking-widest transition-all active:scale-[0.95] dark:bg-slate-800 dark:text-white dark:hover:bg-slate-700"
+                  className="flex-1 text-[10px] font-black uppercase tracking-widest transition-all active:scale-[0.95] dark:bg-slate-800 dark:text-white dark:hover:bg-slate-700"
                   onClick={resetToCurrentMonth}
                 >
                   <RotateCcw className="mr-2 size-3" />
                   Текущий месяц
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="flex-1 text-[10px] font-black uppercase tracking-widest transition-all active:scale-[0.95] dark:bg-slate-800 dark:text-white dark:hover:bg-slate-700"
+                  onClick={setAllTime}
+                >
+                  За все время
                 </Button>
               </div>
             </PopoverContent>

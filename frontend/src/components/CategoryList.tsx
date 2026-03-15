@@ -172,7 +172,8 @@ export function CategoryList() {
                         {category.name}
                       </span>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono font-bold text-gray-500 dark:text-slate-400">
+                        {/* Изменили цвет здесь: с slate-400 на slate-100 для яркости */}
+                        <span className="text-xs font-mono font-bold text-gray-500 dark:text-slate-100">
                           {formatCurrency(amount, currency)}
                         </span>
                         <div

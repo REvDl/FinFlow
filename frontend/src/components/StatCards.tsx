@@ -28,7 +28,6 @@ export function StatCards() {
       })
   );
 
-  // Общий стиль для карточек, чтобы не дублировать
   const cardStyles = "rounded-3xl border border-gray-100 bg-white dark:bg-slate-900 dark:border-slate-800 shadow-sm transition-all duration-300";
 
   if (!isAuthenticated) {
@@ -118,8 +117,9 @@ export function StatCards() {
               <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500">
                 {stat.label}
               </p>
+              {/* Добавил только dark:brightness-150 — это выкрутит яркость твоего оригинального цвета на максимум в темной теме */}
               <p
-                className={`mt-2 text-3xl font-black tracking-tight ${stat.valueColor}`}
+                className={`mt-2 text-3xl font-black tracking-tight ${stat.valueColor} dark:brightness-150 transition-all`}
               >
                 {formatCurrency(stat.value, currency)}
               </p>

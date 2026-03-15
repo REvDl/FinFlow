@@ -83,10 +83,10 @@ export function TransactionList() {
           number,
           Record<string, string | number>
         ];
-        return categoriesAPI.getTransactions(categoryId, params as Parameters<typeof categoriesAPI.getTransactions>[1]);
+        return categoriesAPI.getTransactions(categoryId, params as any);
       }
       const params = args[args.length - 1] as Record<string, string | number>;
-      return transactionsAPI.list(params as Parameters<typeof transactionsAPI.list>[0]);
+      return transactionsAPI.list(params as any);
     });
 
   const transactions = data?.flatMap((page) => page.items) ?? [];
@@ -124,7 +124,6 @@ export function TransactionList() {
     setTransactionFilter(value as TransactionFilter);
   };
 
-  // Общий стиль для карточки списка (белый в светлой, темно-синий в темной)
   const cardBaseStyles = "flex flex-1 flex-col overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm dark:bg-slate-900 dark:border-slate-800 transition-colors duration-300";
 
   if (!isAuthenticated) {
@@ -189,7 +188,7 @@ export function TransactionList() {
                     <button
                       key={transaction.id}
                       onClick={() => setSelectedTransaction(transaction)}
-                      className="group flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50/50 p-4 text-left transition-all hover:bg-gray-100 dark:border-slate-800 dark:bg-slate-950/50 dark:hover:bg-slate-800"
+                      className="group flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50/50 p-4 text-left transition-all hover:bg-gray-100 dark:border-slate-800/50 dark:bg-slate-950/50 dark:hover:bg-slate-800"
                     >
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2">
@@ -211,10 +210,11 @@ export function TransactionList() {
                       </div>
                       <span
                         className={cn(
-                          "font-mono text-sm font-black",
+                          "font-mono text-sm font-black transition-all",
+                          // Секрет яркости карточек был в этом сочетании:
                           transaction.transaction_type === "income"
-                            ? "text-success"
-                            : "text-destructive"
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : "text-rose-600 dark:text-rose-400"
                         )}
                       >
                         {transaction.transaction_type === "income" ? "+" : "-"}
