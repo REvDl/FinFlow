@@ -1,7 +1,7 @@
 import datetime
 from decimal import Decimal
 from typing import Any, Coroutine, Sequence
-from sqlalchemy import select, delete, func, cast, Date, extract, tuple_, case
+from sqlalchemy import select, delete, func, cast, Date, extract, tuple_, case, Nullable
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from database.models import UserOrm, TransactionOrm, CategoriesOrm, TransactionType
@@ -217,3 +217,19 @@ class TransactionDAO:
             "to_currency": to_currency
         }
 
+    @staticmethod
+    async def date_all_time(session: AsyncSession,
+                            user_id: int):
+        query = (
+            select(
+                func.coalesce(func.min(TransactionOrm.created_at), datetime.datetime.now()),
+                func.coalesce(func.max(TransactionOrm.created_at), datetime.datetime.now())
+            )
+            .where(TransactionOrm.user_id == user_id)
+        )
+        result = await session.execute(query)
+        min_data, max_data = result.fetchone()
+        return {
+            "min_data":min_data,
+            "max_data":max_data
+        }
