@@ -50,6 +50,15 @@ async def average(request: Request,
         http_client=request.app.state.http_client
     )
     return average_period
+
+@transaction_route.get("/all_time", status_code=status.HTTP_200_OK)
+async def all_time(session=Depends(get_session),
+                   current_user=Depends(get_current_user)):
+    all_period = await TransactionDAO.date_all_time(
+        session=session,
+        user_id=current_user.id
+    )
+    return all_period
 # ---------- COLLECTION ----------
 
 @transaction_route.post("/", response_model=TransactionResponse, status_code=status.HTTP_201_CREATED)
