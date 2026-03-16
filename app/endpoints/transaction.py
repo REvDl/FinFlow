@@ -35,6 +35,21 @@ async def total(request: Request,
     )
     return result
 
+@transaction_route.get("/average", status_code=status.HTTP_200_OK)
+async def average(request: Request,
+                  calendar: Calendar = Depends(),
+                  currency_data: CurrencyModel = Depends(),
+                  session=Depends(get_session),
+                  current_user=Depends(get_current_user)):
+    average_period = await TransactionDAO.get_average_period(
+        session=session,
+        user_id=current_user.id,
+        calendar=calendar,
+        to_currency=currency_data.to_currency,
+        redis_client=request.app.state.redis,
+        http_client=request.app.state.http_client
+    )
+    return average_period
 # ---------- COLLECTION ----------
 
 @transaction_route.post("/", response_model=TransactionResponse, status_code=status.HTTP_201_CREATED)

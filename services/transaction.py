@@ -1,5 +1,4 @@
 import datetime
-from collections import defaultdict
 from decimal import Decimal
 from typing import Any, Coroutine, Sequence
 from sqlalchemy import select, delete, func, cast, Date, extract, tuple_, case
@@ -191,3 +190,30 @@ class TransactionDAO:
             "currency": to_currency.upper(),
             "categories": categories_data
         }
+
+
+    @staticmethod
+    async def get_average_period(session: AsyncSession,
+                                 user_id: int,
+                                 calendar: Calendar,
+                                 redis_client,
+                                 http_client,
+                                 to_currency: str = "UAH"):
+        total = await TransactionDAO.total_for_frontend(
+            session=session,
+            user_id=user_id,
+            calendar=calendar,
+            to_currency=to_currency,
+            redis_client=redis_client,
+            http_client=http_client
+        )
+        start_date = calendar.start or datetime.date.today()
+        end_date = calendar.end or datetime.date.today()
+        days = max((end_date - start_date).days + 1, 1)
+        return {
+            "average_spending": round(total.get("spending", 0) / days, 2),
+            "average_income": round(total.get("income", 0) / days, 2),
+            "days": days,
+            "to_currency": to_currency
+        }
+
