@@ -1,6 +1,6 @@
 const API_BASE = "/api";
 
-// Храним refresh_token в памяти для продления сессии (без изменения бэкенда)
+// Храним refresh_token в памяти для продления сессии
 let storedRefreshToken: string | null = null;
 export function setStoredRefreshToken(token: string | null) {
   storedRefreshToken = token;
@@ -9,10 +9,42 @@ export function getStoredRefreshToken(): string | null {
   return storedRefreshToken;
 }
 
+// Переменные для управления очередью запросов при обновлении токена
+let isRefreshing = false;
+let failedQueue: any[] = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 interface FetchOptions extends RequestInit {
   params?: Record<string, string | number | undefined>;
   _retry?: boolean;
 }
+
+// --- ИСПРАВЛЕННАЯ ФУНКЦИЯ ДЛЯ СРЕДНЕГО ЗНАЧЕНИЯ ---
+export const getAverageStats = async (params: { start: any; end: any; to_currency: string }) => {
+  const toISODate = (date: any) => {
+    if (!date) return undefined;
+    const d = new Date(date);
+    return isNaN(d.getTime()) ? date : d.toISOString().split('T')[0];
+  };
+
+  return fetchAPI<AverageResponse>("/transaction/average", {
+    params: {
+      start: toISODate(params.start),
+      end: toISODate(params.end),
+      to_currency: params.to_currency,
+    },
+  });
+};
 
 async function fetchAPI<T>(
   endpoint: string,
@@ -43,7 +75,17 @@ async function fetchAPI<T>(
     },
   });
 
+  // Логика обновления токена при 401
   if (response.status === 401 && !_retry) {
+    if (isRefreshing) {
+      return new Promise((resolve, reject) => {
+        failedQueue.push({ resolve, reject });
+      })
+        .then(() => fetchAPI<T>(endpoint, { ...options, _retry: true }))
+        .catch((err) => Promise.reject(err));
+    }
+
+    isRefreshing = true;
     const refreshToken = getStoredRefreshToken();
     if (refreshToken) {
       try {
@@ -53,15 +95,23 @@ async function fetchAPI<T>(
           credentials: "include",
           headers: { "Content-Type": "application/json" },
         });
+
         const refreshData = await refreshRes.json().catch(() => ({}));
-        if (refreshRes.ok && refreshData.refresh_token) {
-          setStoredRefreshToken(refreshData.refresh_token);
+
+        if (refreshRes.ok && refreshData.tokens) {
+          setStoredRefreshToken(refreshData.tokens.refresh_token);
+          isRefreshing = false;
+          processQueue(null, refreshData.tokens.access_token);
           return fetchAPI<T>(endpoint, { ...options, _retry: true });
         }
-      } catch {
+      } catch (err) {
+        isRefreshing = false;
+        processQueue(err, null);
         setStoredRefreshToken(null);
+        throw err;
       }
     }
+    isRefreshing = false;
   }
 
   if (!response.ok) {
@@ -164,7 +214,8 @@ export const transactionsAPI = {
   get: (id: number) => fetchAPI<Transaction>(`/transaction/${id}`),
 };
 
-// Types
+// --- ТИПЫ ДАННЫХ ---
+
 export interface User {
   id: number;
   username: string;
@@ -174,6 +225,13 @@ export interface Category {
   id: number;
   name: string;
   total_spending?: number;
+}
+
+export interface AverageResponse {
+  average_spending: number;
+  average_income: number;
+  days: number;
+  to_currency: string;
 }
 
 export interface Transaction {
@@ -200,7 +258,6 @@ export interface CreateTransactionData {
 
 export interface PaginatedTransactions {
   items: Transaction[];
-  /** Бэкенд возвращает курсор в виде объекта */
   next_cursor?: { cursor_time: string; cursor_id: number };
   next_cursor_time?: string;
   next_cursor_id?: number;
@@ -218,7 +275,6 @@ export interface TotalResponse {
   income: number;
   spending: number;
   currency: string;
-  /** Бэкенд возвращает категории как объект имя → сумма (только расходы) */
   categories?: Record<string, number>;
   category_breakdown?: CategoryBreakdown[];
 }

@@ -11,6 +11,13 @@ export default defineConfig({
     },
   },
   server: {
+      port: 5173,
+      host: true,
+      allowedHosts: [
+      'localhost',
+      '127.0.0.1',
+      'subjunior-kayson-euphemistically.ngrok-free.dev'
+    ],
     proxy: {
       "/api": {
         target: "http://localhost:8000",

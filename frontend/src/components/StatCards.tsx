@@ -6,6 +6,8 @@ import { useDashboard } from "@/contexts/DashboardContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { transactionsAPI, TotalResponse } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
+// 1. ИМПОРТИРУЕМ НОВЫЙ КОМПОНЕНТ
+import { AverageStats } from "./AverageStats";
 
 export function StatCards() {
   const { currency, dateRange, formatDateForAPI } = useDashboard();
@@ -95,38 +97,46 @@ export function StatCards() {
   ];
 
   return (
-    <div className="grid gap-4 sm:grid-cols-3">
-      {stats.map((stat) => (
-        <Card
-          key={stat.label}
-          className={`${cardStyles} group py-6 hover:-translate-y-0.5 hover:shadow-md`}
-        >
-          <CardContent className="flex items-center gap-4 px-6">
-            <div
-              className={`flex size-12 items-center justify-center rounded-2xl ${stat.color} transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:scale-110`}
-            >
-              <stat.icon
-                className={`size-6 transition-transform duration-300 group-hover:rotate-6 ${
-                  stat.label === "Текущий баланс" &&
-                  (stat.value ?? 0) < 0 &&
-                  "group-hover:-rotate-12"
-                }`}
-              />
-            </div>
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500">
-                {stat.label}
-              </p>
-              {/* Добавил только dark:brightness-150 — это выкрутит яркость твоего оригинального цвета на максимум в темной теме */}
-              <p
-                className={`mt-2 text-3xl font-black tracking-tight ${stat.valueColor} dark:brightness-150 transition-all`}
+    // 2. ОБЕРТКА, ЧТОБЫ ВСЁ БЫЛО В ОДНУ КОЛОНКУ
+    <div className="flex flex-col gap-6">
+
+      {/* Твоя оригинальная сетка карточек */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        {stats.map((stat) => (
+          <Card
+            key={stat.label}
+            className={`${cardStyles} group py-6 hover:-translate-y-0.5 hover:shadow-md`}
+          >
+            <CardContent className="flex items-center gap-4 px-6">
+              <div
+                className={`flex size-12 items-center justify-center rounded-2xl ${stat.color} transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:scale-110`}
               >
-                {formatCurrency(stat.value, currency)}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+                <stat.icon
+                  className={`size-6 transition-transform duration-300 group-hover:rotate-6 ${
+                    stat.label === "Текущий баланс" &&
+                    (stat.value ?? 0) < 0 &&
+                    "group-hover:-rotate-12"
+                  }`}
+                />
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500">
+                  {stat.label}
+                </p>
+                <p
+                  className={`mt-2 text-3xl font-black tracking-tight ${stat.valueColor} dark:brightness-150 transition-all`}
+                >
+                  {formatCurrency(stat.value, currency)}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* 3. ВСТАВЛЯЕМ СРЕДНИЕ ПОД КАРТОЧКАМИ */}
+      <AverageStats />
+
     </div>
   );
 }
