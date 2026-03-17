@@ -212,6 +212,9 @@ export const transactionsAPI = {
     fetchAPI(`/transaction/${id}`, { method: "DELETE" }),
 
   get: (id: number) => fetchAPI<Transaction>(`/transaction/${id}`),
+
+  getExtremeDates: () =>
+    fetchAPI<{ min_data: string; max_data: string }>("/transaction/all_time"),
 };
 
 // --- ТИПЫ ДАННЫХ ---
