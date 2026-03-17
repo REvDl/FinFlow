@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState } from "react";
-import { startOfMonth, endOfMonth, format } from "date-fns";
+import React, { createContext, useContext, useState, useCallback } from "react";
+import { startOfMonth, endOfMonth, format, parseISO, startOfDay, endOfDay } from "date-fns";
+import { transactionsAPI } from "@/lib/api";
 
 export type Currency = "UAH" | "USD" | "EUR" | "RUB" | "CZK";
 export type TransactionFilter = "all" | "income" | "spending";
@@ -14,7 +15,7 @@ interface DashboardContextType {
   setCurrency: (currency: Currency) => void;
   dateRange: DateRange;
   setDateRange: (range: DateRange) => void;
-  setAllTime: () => void; // Добавили метод в интерфейс
+  setAllTime: () => Promise<void>;
   transactionFilter: TransactionFilter;
   setTransactionFilter: (filter: TransactionFilter) => void;
   selectedCategoryId: number | null;
@@ -38,17 +39,36 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     null
   );
 
-  const formatDateForAPI = (date: Date) => format(date, "yyyy-MM-dd");
+  // Используем useCallback для стабильности
+  const formatDateForAPI = useCallback((date: Date) => format(date, "yyyy-MM-dd"), []);
 
-  // Реализация функции "За все время"
-  const setAllTime = () => {
-    const farFuture = new Date();
-    farFuture.setFullYear(2030); // Ставим 2030 год, чтобы видеть всё "будущее"
+const setAllTime = async () => {
+    try {
+      const response = await transactionsAPI.getExtremeDates();
 
-    setDateRange({
-      start: new Date(2000, 0, 1),
-      end: farFuture,
-    });
+      if (response && response.min_data && response.max_data) {
+        const { min_data, max_data } = response;
+
+        const parseStrict = (dateStr: string) => {
+          // Берем только YYYY-MM-DD
+          const cleanStr = dateStr.trim().split(" ")[0] || dateStr;
+          const [y, m, d] = cleanStr.split(/[-T ]/).map(Number);
+
+          // Создаем дату в 12:00 дня.
+          // Это "бетонная" защита от прыжков часовых поясов.
+          return new Date(y, m - 1, d, 12, 0, 0);
+        };
+
+        const start = parseStrict(min_data);
+        const end = parseStrict(max_data);
+
+        if (start && end) {
+          setDateRange({ start, end });
+        }
+      }
+    } catch (error) {
+      console.error("Ошибка фронта:", error);
+    }
   };
 
   return (
@@ -58,7 +78,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         setCurrency,
         dateRange,
         setDateRange,
-        setAllTime, // Прокидываем в провайдер
+        setAllTime,
         transactionFilter,
         setTransactionFilter,
         selectedCategoryId,
