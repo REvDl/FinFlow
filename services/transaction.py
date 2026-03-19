@@ -156,9 +156,11 @@ class TransactionDAO:
         converted_price = case(*transaction_currency, else_=TransactionOrm.price / target_rate)
         total_query = (
             select(
-                func.sum(case((TransactionOrm.transaction_type == TransactionType.income, converted_price), else_=0)).label(
+                func.sum(
+                    case((TransactionOrm.transaction_type == TransactionType.income, converted_price), else_=0)).label(
                     "total_income"),
-                func.sum(case((TransactionOrm.transaction_type == TransactionType.spending, converted_price), else_=0)).label(
+                func.sum(case((TransactionOrm.transaction_type == TransactionType.spending, converted_price),
+                              else_=0)).label(
                     "total_spending")
             )
             .filter(TransactionOrm.user_id == user_id)
