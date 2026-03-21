@@ -1,7 +1,7 @@
 import datetime
 from decimal import Decimal
 from typing import Any, Coroutine, Sequence
-from sqlalchemy import select, delete, func, cast, Date, extract, tuple_, case, Nullable
+from sqlalchemy import select, delete, func, cast, Date, extract, tuple_, case, Nullable, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from database.models import UserOrm, TransactionOrm, CategoriesOrm, TransactionType
@@ -29,6 +29,20 @@ class TransactionDAO:
     @staticmethod
     async def read_transaction_one(session: AsyncSession, spending_id: int):
         return await session.get(TransactionOrm, spending_id)
+
+    @staticmethod
+    async def read_transaction_for_file(session: AsyncSession,
+                                        user_id: int):
+        stmt = text("""
+            SELECT json_agg(t) FROM (
+                SELECT id, name, description, price, category_id, created_at
+                FROM transactions
+                WHERE user_id = :user_id
+            ) t
+        """)
+        result = await session.execute(stmt, {"user_id": user_id})
+        json_result = result.scalar()
+        return json_result or "[]"
 
     @staticmethod
     async def read_transaction_all(session: AsyncSession,

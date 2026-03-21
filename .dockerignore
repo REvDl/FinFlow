@@ -12,3 +12,5 @@ __pycache__
 .git
 .idea
 .vscode
+
+docker-compose.test.yaml
