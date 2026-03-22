@@ -1,5 +1,5 @@
 import * as React from "react";
-import { LogOut, Wallet, CalendarIcon, RotateCcw, Sun, Moon } from "lucide-react";
+import { LogOut, Wallet, CalendarIcon, RotateCcw, Sun, Moon, DownloadCloud } from "lucide-react"; // Добавил DownloadCloud
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,8 +17,9 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDashboard, Currency } from "@/contexts/DashboardContext";
+import { transactionsAPI } from "@/lib/api"; // ИМПОРТ ТВОЕГО АПИ
 import { DateRange } from "react-day-picker";
-import { cn } from "@/lib/utils"; // Убедись, что этот импорт есть
+import { cn } from "@/lib/utils";
 
 const currencies: { value: Currency; label: string; symbol: string }[] = [
   { value: "UAH", label: "UAH", symbol: "₴" },
@@ -32,11 +33,34 @@ export function Header() {
   const { user, logout, setShowAuthModal } = useAuth();
   const { currency, setCurrency, dateRange, setDateRange, setAllTime } = useDashboard();
   const [isDark, setIsDark] = React.useState(false);
+  const [isExporting, setIsExporting] = React.useState(false); // Состояние для лоадера кнопки
 
   React.useEffect(() => {
     const isDarkMode = document.documentElement.classList.contains("dark");
     setIsDark(isDarkMode);
   }, []);
+
+  // ЛОГИКА СКАЧИВАНИЯ
+  const handleExport = async () => {
+    if (isExporting) return;
+    setIsExporting(true);
+    try {
+      const blob = await transactionsAPI.exportTransactions();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const date = format(new Date(), "yyyy-MM-dd");
+      a.download = `FinFlow_export_${date}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Export error:", err);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const toggleTheme = () => {
     const root = window.document.documentElement;
@@ -81,6 +105,24 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-2 md:gap-3 overflow-hidden">
+
+          {/* НОВАЯ КНОПКА ЭКСПОРТА */}
+          {user && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleExport}
+              disabled={isExporting}
+              title="Экспорт транзакций в JSON"
+              className={cn(
+                "rounded-lg border border-gray-200 dark:border-slate-800 dark:hover:bg-slate-800 dark:text-white shrink-0 transition-all",
+                isExporting && "animate-pulse opacity-50"
+              )}
+            >
+              <DownloadCloud className={cn("size-4 text-indigo-500", isExporting && "animate-bounce")} />
+            </Button>
+          )}
+
           {/* Кнопка темы */}
           <Button
             variant="ghost"
@@ -95,7 +137,7 @@ export function Header() {
             )}
           </Button>
 
-          {/* Календарь - ТОЛЬКО ПРАВКА КЛАССОВ */}
+          {/* Календарь */}
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -142,7 +184,7 @@ export function Header() {
             </PopoverContent>
           </Popover>
 
-          {/* Валюта - ФИКС СЖАТИЯ */}
+          {/* Валюта */}
           <Select
             value={currency}
             onValueChange={(v) => setCurrency(v as Currency)}

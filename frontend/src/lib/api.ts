@@ -1,3 +1,5 @@
+// @/lib/api.ts
+
 const API_BASE = "/api";
 
 // Храним refresh_token в памяти для продления сессии
@@ -29,22 +31,7 @@ interface FetchOptions extends RequestInit {
   _retry?: boolean;
 }
 
-// --- ИСПРАВЛЕННАЯ ФУНКЦИЯ ДЛЯ СРЕДНЕГО ЗНАЧЕНИЯ ---
-export const getAverageStats = async (params: { start: any; end: any; to_currency: string }) => {
-  const toISODate = (date: any) => {
-    if (!date) return undefined;
-    const d = new Date(date);
-    return isNaN(d.getTime()) ? date : d.toISOString().split('T')[0];
-  };
-
-  return fetchAPI<AverageResponse>("/transaction/average", {
-    params: {
-      start: toISODate(params.start),
-      end: toISODate(params.end),
-      to_currency: params.to_currency,
-    },
-  });
-};
+// --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
 
 async function fetchAPI<T>(
   endpoint: string,
@@ -122,11 +109,25 @@ async function fetchAPI<T>(
   return response.json();
 }
 
-// Auth API
-export interface AuthResponse {
-  user: User;
-  tokens: { access_token: string; refresh_token: string; token_type?: string };
-}
+// --- ИСПРАВЛЕННАЯ ФУНКЦИЯ ДЛЯ СРЕДНЕГО ЗНАЧЕНИЯ ---
+export const getAverageStats = async (params: { start: any; end: any; to_currency: string }) => {
+  const toISODate = (date: any) => {
+    if (!date) return undefined;
+    const d = new Date(date);
+    return isNaN(d.getTime()) ? date : d.toISOString().split('T')[0];
+  };
+
+  return fetchAPI<AverageResponse>("/transaction/average", {
+    params: {
+      start: toISODate(params.start),
+      end: toISODate(params.end),
+      to_currency: params.to_currency,
+    },
+  });
+};
+
+// --- API ОБЪЕКТЫ ---
+
 export const authAPI = {
   register: (data: { username: string; password: string }) =>
     fetchAPI<AuthResponse>("/auth/register", {
@@ -145,7 +146,6 @@ export const authAPI = {
   getCurrentUser: () => fetchAPI<User>("/user/"),
 };
 
-// Categories API
 export const categoriesAPI = {
   list: () => fetchAPI<Category[]>("/categories/"),
 
@@ -179,7 +179,6 @@ export const categoriesAPI = {
     }),
 };
 
-// Transactions API
 export const transactionsAPI = {
   getTotal: (params: {
     to_currency: string;
@@ -215,6 +214,23 @@ export const transactionsAPI = {
 
   getExtremeDates: () =>
     fetchAPI<{ min_data: string; max_data: string }>("/transaction/all_time"),
+
+  // МЕТОД ДЛЯ ЭКСПОРТА JSON
+  exportTransactions: async () => {
+    // Используем прямой fetch, так как fetchAPI настроен на .json()
+    const url = `${API_BASE}/transaction/export`;
+    const response = await fetch(url, {
+      method: "GET",
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.detail || `Export Error: ${response.status}`);
+    }
+
+    return response.blob(); // Возвращаем файл как бинарный объект
+  },
 };
 
 // --- ТИПЫ ДАННЫХ ---
@@ -222,6 +238,11 @@ export const transactionsAPI = {
 export interface User {
   id: number;
   username: string;
+}
+
+export interface AuthResponse {
+  user: User;
+  tokens: { access_token: string; refresh_token: string; token_type?: string };
 }
 
 export interface Category {
