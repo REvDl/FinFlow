@@ -1,4 +1,5 @@
 import datetime
+import io
 import json
 from typing import Annotated, Optional
 from fastapi import APIRouter, status, Depends, Query, Request
@@ -63,69 +64,21 @@ async def all_time(session=Depends(get_session),
     return all_period
 
 
-MY_DATA = [
-    {
-        "id": 78,
-        "name": "Fee",
-        "description": "",
-        "price": "50.00",
-        "category_id": 9,
-        "category_name": "Binance",
-        "created_at": "2026-03-15T23:04:43",
-        "currency": "USD",
-        "transaction_type": "spending"
-    },
-    {
-        "id": 77,
-        "name": "BTC",
-        "description": "",
-        "price": "100.00",
-        "category_id": 15,
-        "category_name": "Sell",
-        "created_at": "2026-03-15T23:04:18",
-        "currency": "USD",
-        "transaction_type": "income"
-    },
-    {
-        "id": 76,
-        "name": "Fee",
-        "description": "",
-        "price": "0.33",
-        "category_id": 9,
-        "category_name": "Binance",
-        "created_at": "2026-03-12T00:00:00",
-        "currency": "USD",
-        "transaction_type": "spending"
-    },
-    {
-        "id": 75,
-        "name": "BTC",
-        "description": "",
-        "price": "330.00",
-        "category_id": 15,
-        "category_name": "Sell",
-        "created_at": "2026-03-12T00:00:00",
-        "currency": "USD",
-        "transaction_type": "income"
-    }
-]
-
-
-def iterfile(filename:str):
-    with open(filename, "r") as file:
-        while chunk := file.read(1024 * 1024):
-            yield chunk
 
 @transaction_route.get("/export", status_code=status.HTTP_200_OK)
 async def export_data(session=Depends(get_session),
                       current_user=Depends(get_current_user)):
-    filename = f"{datetime.datetime.now()}_date"
-    with open(filename, "w", encoding="utf-8") as f:
-        json.dump(MY_DATA, f, indent=4)
-    headers = {
-        'Content-Disposition': 'attachment; filename="data.json"'
-    }
-    return StreamingResponse(iterfile(filename), media_type="application/json", headers=headers)
+    data = await TransactionDAO.read_transaction_for_file(
+        session=session,
+        user_id=current_user.id
+    )
+    file_like = io.BytesIO(data.encode("utf-8"))
+    filename = f"FinFlow_transactions_{datetime.datetime.now()}.json"
+    return StreamingResponse(
+        file_like,
+        media_type="application/json",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
 
 
 

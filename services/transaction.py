@@ -1,4 +1,5 @@
 import datetime
+import json
 from decimal import Decimal
 from typing import Any, Coroutine, Sequence
 from sqlalchemy import select, delete, func, cast, Date, extract, tuple_, case, Nullable, text
@@ -42,8 +43,10 @@ class TransactionDAO:
         """)
         result = await session.execute(stmt, {"user_id": user_id})
         json_result = result.scalar()
-        return json_result or "[]"
-
+        if json_result:
+            data = json.dumps(json_result, indent=4, ensure_ascii=False)
+            return data
+        return "[]"
     @staticmethod
     async def read_transaction_all(session: AsyncSession,
                                    calendar: Calendar,
