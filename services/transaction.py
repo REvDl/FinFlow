@@ -2,7 +2,7 @@ import datetime
 import json
 from decimal import Decimal
 from typing import Any, Coroutine, Sequence
-from sqlalchemy import select, delete, func, cast, Date, extract, tuple_, case, Nullable, text
+from sqlalchemy import select, delete, func, cast, Date, extract, tuple_, case, Nullable, text, insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from database.models import UserOrm, TransactionOrm, CategoriesOrm, TransactionType
@@ -28,6 +28,11 @@ class TransactionDAO:
         return new_spending
 
     @staticmethod
+    async def create_transactions_import(session: AsyncSession, data: list[dict]):
+        stmt = insert(TransactionOrm).values(data)
+        return await session.execute(stmt)
+
+    @staticmethod
     async def read_transaction_one(session: AsyncSession, spending_id: int):
         return await session.get(TransactionOrm, spending_id)
 
@@ -36,7 +41,7 @@ class TransactionDAO:
                                         user_id: int):
         stmt = text("""
             SELECT json_agg(t) FROM (
-                SELECT id, name, description, price, category_id, created_at
+                SELECT id, name, description, price, category_id, created_at, currency, transaction_type
                 FROM transactions
                 WHERE user_id = :user_id
             ) t

@@ -65,20 +65,20 @@ async def all_time(session=Depends(get_session),
 
 
 
-@transaction_route.get("/export", status_code=status.HTTP_200_OK)
-async def export_data(session=Depends(get_session),
-                      current_user=Depends(get_current_user)):
-    data = await TransactionDAO.read_transaction_for_file(
-        session=session,
-        user_id=current_user.id
-    )
-    file_like = io.BytesIO(data.encode("utf-8"))
-    filename = f"FinFlow_transactions_{datetime.datetime.now()}.json"
-    return StreamingResponse(
-        file_like,
-        media_type="application/json",
-        headers={"Content-Disposition": f"attachment; filename={filename}"}
-    )
+# @transaction_route.get("/export", status_code=status.HTTP_200_OK)
+# async def export_data(session=Depends(get_session),
+#                       current_user=Depends(get_current_user)):
+#     data = await TransactionDAO.read_transaction_for_file(
+#         session=session,
+#         user_id=current_user.id
+#     )
+#     file_like = io.BytesIO(data.encode("utf-8"))
+#     filename = f"FinFlow_transactions_{datetime.datetime.now()}.json"
+#     return StreamingResponse(
+#         file_like,
+#         media_type="application/json",
+#         headers={"Content-Disposition": f"attachment; filename={filename}"}
+#     )
 
 
 
