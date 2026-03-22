@@ -218,7 +218,7 @@ export const transactionsAPI = {
   // МЕТОД ДЛЯ ЭКСПОРТА JSON
   exportTransactions: async () => {
     // Используем прямой fetch, так как fetchAPI настроен на .json()
-    const url = `${API_BASE}/transaction/export`;
+    const url = `${API_BASE}/data/export`;
     const response = await fetch(url, {
       method: "GET",
       credentials: "include",
