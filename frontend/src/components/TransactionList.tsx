@@ -25,7 +25,9 @@ export function TransactionList() {
     selectedCategoryId,
     dateRange,
     formatDateForAPI,
+    refreshTicket, // 1. ДОБАВЛЯЕМ ТИКЕТ ИЗ КОНТЕКСТА
   } = useDashboard();
+
   const { isAuthenticated } = useAuth();
   const [selectedTransaction, setSelectedTransaction] =
     useState<Transaction | null>(null);
@@ -52,6 +54,7 @@ export function TransactionList() {
       params.cursor_id = cursor.cursor_id;
     }
 
+    // 2. ВКЛЮЧАЕМ refreshTicket В КЛЮЧИ (дизайн не трогаем, только логику SWR)
     return selectedCategoryId
       ? [
           "category-transactions",
@@ -59,6 +62,7 @@ export function TransactionList() {
           transactionFilter,
           formatDateForAPI(dateRange.start),
           formatDateForAPI(dateRange.end),
+          refreshTicket, // ТИКЕТ ТУТ
           pageIndex,
           params,
         ]
@@ -67,6 +71,7 @@ export function TransactionList() {
           transactionFilter,
           formatDateForAPI(dateRange.start),
           formatDateForAPI(dateRange.end),
+          refreshTicket, // И ТУТ
           pageIndex,
           params,
         ];
@@ -75,12 +80,13 @@ export function TransactionList() {
   const { data, size, setSize, isLoading, isValidating, mutate } =
     useSWRInfinite<PaginatedTransactions>(getKey, async ([key, ...args]) => {
       if (key === "category-transactions") {
-        const [categoryId, , , , , params] = args as [
+        const [categoryId, , , , , , params] = args as [
           number,
           string,
           string,
           string,
           number,
+          number, // Индекс для тикета
           Record<string, string | number>
         ];
         return categoriesAPI.getTransactions(categoryId, params as any);
@@ -89,6 +95,7 @@ export function TransactionList() {
       return transactionsAPI.list(params as any);
     });
 
+  // --- ОСТАЛЬНОЙ КОД БЕЗ ИЗМЕНЕНИЙ (ТВОЙ ОРИГИНАЛЬНЫЙ ДИЗАЙН) ---
   const transactions = data?.flatMap((page) => page.items) ?? [];
   const hasMore = data?.[data.length - 1]?.has_more ?? false;
   const isLoadingMore =
@@ -211,7 +218,6 @@ export function TransactionList() {
                       <span
                         className={cn(
                           "font-mono text-sm font-black transition-all",
-                          // Секрет яркости карточек был в этом сочетании:
                           transaction.transaction_type === "income"
                             ? "text-emerald-600 dark:text-emerald-400"
                             : "text-rose-600 dark:text-rose-400"

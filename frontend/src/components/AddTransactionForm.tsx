@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
-import useSWR, { mutate } from "swr";
+import useSWR from "swr"; // Убрали локальный mutate
 import { CalendarIcon, Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,12 +44,18 @@ type FormData = z.infer<typeof schema>;
 
 export function AddTransactionForm() {
   const { isAuthenticated } = useAuth();
-  const { dateRange, formatDateForAPI, currency } = useDashboard();
+  const {
+    currency,
+    refreshTicket, // Подключаем тикет для синхронизации ключей
+    refreshData    // Подключаем функцию глобального обновления
+  } = useDashboard();
+
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [isOpen, setIsOpen] = useState(false);
 
+  // Используем массив в ключе SWR, чтобы форма обновляла список категорий вместе со всем приложением
   const { data: categories } = useSWR<Category[]>(
-    isAuthenticated ? "categories" : null,
+    isAuthenticated ? ["categories", refreshTicket] : null,
     () => categoriesAPI.list()
   );
 
@@ -73,9 +79,8 @@ export function AddTransactionForm() {
         created_at: date ? format(date, "yyyy-MM-dd'T'HH:mm:ss") : undefined,
       });
 
-      mutate((key) => Array.isArray(key) && (key[0] === "transactions" || key[0] === "category-transactions"));
-      mutate((key) => Array.isArray(key) && key[0] === "totals" && key[2] === formatDateForAPI(dateRange.start) && key[3] === formatDateForAPI(dateRange.end));
-      mutate("categories");
+      // Глобально обновляем все данные: баланс, графики, категории и список транзакций
+      refreshData();
 
       form.reset({
         name: "",
@@ -128,10 +133,10 @@ export function AddTransactionForm() {
             onValueChange={(v) => form.setValue("transaction_type", v as "income" | "spending")}
           >
             <TabsList className="w-full dark:bg-slate-950 dark:border dark:border-slate-800 p-1">
-              <TabsTrigger value="spending" className="flex-1 text-[10px] font-black uppercase tracking-widest dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white">
+              <TabsTrigger value="spending" className="flex-1 text-[10px] font-black uppercase tracking-widest">
                 Расход
               </TabsTrigger>
-              <TabsTrigger value="income" className="flex-1 text-[10px] font-black uppercase tracking-widest dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white">
+              <TabsTrigger value="income" className="flex-1 text-[10px] font-black uppercase tracking-widest">
                 Доход
               </TabsTrigger>
             </TabsList>
@@ -155,7 +160,7 @@ export function AddTransactionForm() {
                 </SelectTrigger>
                 <SelectContent className="dark:bg-slate-950 dark:border-slate-800">
                   {currencies.map((c) => (
-                    <SelectItem key={c} value={c} className="dark:text-white dark:focus:bg-slate-800">{c}</SelectItem>
+                    <SelectItem key={c} value={c} className="dark:text-white">{c}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -170,7 +175,7 @@ export function AddTransactionForm() {
               </SelectTrigger>
               <SelectContent className="dark:bg-slate-950 dark:border-slate-800">
                 {categories?.map((c) => (
-                  <SelectItem key={c.id} value={String(c.id)} className="dark:text-white dark:focus:bg-slate-800">{c.name}</SelectItem>
+                  <SelectItem key={c.id} value={String(c.id)} className="dark:text-white">{c.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -180,7 +185,7 @@ export function AddTransactionForm() {
             <Label className={labelStyles}>Дата</Label>
             <Popover open={isOpen} onOpenChange={setIsOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" className={cn("h-10 justify-start text-left font-medium", inputStyles, !date && "text-muted-foreground")}>
+                <Button variant="outline" className={cn("h-10 justify-start text-left font-medium", inputStyles)}>
                   <CalendarIcon className="mr-2 size-4 text-indigo-500" />
                   {date ? format(date, "dd.MM.yyyy") : "Выберите дату"}
                 </Button>
@@ -193,7 +198,7 @@ export function AddTransactionForm() {
 
           <Button
             type="submit"
-            className="mt-2 h-11 w-full rounded-xl bg-indigo-600 text-[10px] font-black uppercase tracking-widest text-white hover:bg-indigo-700 transition-all active:scale-95"
+            className="mt-2 h-11 w-full rounded-xl bg-indigo-600 text-[10px] font-black uppercase tracking-widest text-white hover:bg-indigo-700"
             disabled={form.formState.isSubmitting}
           >
             {form.formState.isSubmitting ? <Spinner /> : <><Plus className="mr-2 size-4" /> Добавить</>}

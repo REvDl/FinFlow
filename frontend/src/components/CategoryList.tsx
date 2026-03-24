@@ -1,5 +1,5 @@
-import { useState } from "react";
-import useSWR, { mutate } from "swr";
+import { useState, useMemo } from "react";
+import useSWR, { useSWRConfig } from "swr";
 import { Plus, X, Tag } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { categoriesAPI, transactionsAPI, Category, TotalResponse } from "@/lib/a
 import { formatCurrency, cn } from "@/lib/utils";
 
 export function CategoryList() {
+  const { mutate } = useSWRConfig();
   const { isAuthenticated } = useAuth();
   const {
     selectedCategoryId,
@@ -20,17 +21,20 @@ export function CategoryList() {
     currency,
     dateRange,
     formatDateForAPI,
+    refreshTicket,
+    refreshData,
   } = useDashboard();
+
   const [newCategory, setNewCategory] = useState("");
   const [isAdding, setIsAdding] = useState(false);
 
-  // Получаем список категорий
+  // КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Используем фиксированный ключ "categories"
+  // Это гарантирует, что все компоненты смотрят в одну корзину
   const { data: categories, isLoading } = useSWR<Category[]>(
     isAuthenticated ? "categories" : null,
     () => categoriesAPI.list()
   );
 
-  // Получаем суммы по категориям
   const { data: totals } = useSWR<TotalResponse>(
     isAuthenticated
       ? [
@@ -38,6 +42,7 @@ export function CategoryList() {
           currency,
           formatDateForAPI(dateRange.start),
           formatDateForAPI(dateRange.end),
+          refreshTicket,
         ]
       : null,
     () =>
@@ -48,59 +53,65 @@ export function CategoryList() {
       })
   );
 
+  const categoryAmounts = totals?.categories ?? {};
+
+  const sortedCategories = useMemo(() => {
+    if (!categories) return [];
+    return [...categories].sort((a, b) => {
+      const amountA = categoryAmounts[a.name] ?? 0;
+      const amountB = categoryAmounts[b.name] ?? 0;
+      return amountB - amountA;
+    });
+  }, [categories, categoryAmounts]);
+
+  const maxSpending = Math.max(...Object.values(categoryAmounts), 1);
+
   const handleAddCategory = async () => {
     if (!newCategory.trim()) return;
     setIsAdding(true);
+
     try {
       await categoriesAPI.create({ name: newCategory.trim() });
-      mutate("categories");
       setNewCategory("");
+      // Мгновенно обновляем ключ "categories"
+      await mutate("categories");
+      refreshData();
     } catch (err) {
-      console.error("Failed to add category:", err);
+      console.error("Add failed:", err);
     } finally {
       setIsAdding(false);
     }
   };
 
   const handleDeleteCategory = async (id: number) => {
+    // 1. Оптимистичное удаление из UI
+    // Мы сразу выкидываем категорию из кеша, не дожидаясь сервера
+    mutate(
+      "categories",
+      (current: Category[] | undefined) => current?.filter((c) => c.id !== id),
+      false
+    );
+
     try {
       await categoriesAPI.delete(id);
-      mutate("categories");
+      // 2. После успеха синхронизируемся с сервером начисто
+      await mutate("categories");
+      refreshData();
+
       if (selectedCategoryId === id) {
         setSelectedCategoryId(null);
       }
     } catch (err) {
-      console.error("Failed to delete category:", err);
+      console.error("Delete failed:", err);
+      // Если сервак ответил ошибкой — вернем всё как было
+      mutate("categories");
     }
   };
 
-  const categoryAmounts = totals?.categories ?? {};
-  const maxSpending = Math.max(...Object.values(categoryAmounts), 1);
-
-  // Стили для темной темы
-  const cardStyles = "flex flex-col rounded-3xl border border-gray-100 bg-white shadow-sm dark:bg-slate-900 dark:border-slate-800 transition-colors duration-300";
-  const inputStyles = "h-8 dark:bg-slate-950 dark:border-slate-800 dark:text-white dark:placeholder:text-slate-600";
-
-  if (!isAuthenticated) {
-    return (
-      <Card className={cardStyles}>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base dark:text-white">
-            <Tag className="size-4" />
-            Категории
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground dark:text-slate-500">
-            Войдите, чтобы посмотреть категории
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
+  if (!isAuthenticated) return null;
 
   return (
-    <Card className={cardStyles}>
+    <Card className="flex flex-col rounded-3xl border border-gray-100 bg-white shadow-sm dark:bg-slate-900 dark:border-slate-800 transition-colors duration-300">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center justify-between text-base">
           <span className="flex items-center gap-2 dark:text-white text-[12px] font-black uppercase tracking-widest">
@@ -126,7 +137,7 @@ export function CategoryList() {
             value={newCategory}
             onChange={(e) => setNewCategory(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleAddCategory()}
-            className={inputStyles}
+            className="h-8 dark:bg-slate-950 dark:border-slate-800 dark:text-white dark:placeholder:text-slate-600"
           />
           <Button
             size="sm"
@@ -142,14 +153,10 @@ export function CategoryList() {
           <div className="flex items-center justify-center py-4">
             <Spinner className="size-5" />
           </div>
-        ) : categories?.length === 0 ? (
-          <p className="py-4 text-center text-sm text-muted-foreground dark:text-slate-500">
-            Категорий пока нет
-          </p>
         ) : (
-          <ScrollArea className="flex-1">
-            <div className="flex flex-col gap-2 pr-2">
-              {categories?.map((category) => {
+          <ScrollArea className="flex-1 pr-2">
+            <div className="flex flex-col gap-2">
+              {sortedCategories.map((category) => {
                 const amount = categoryAmounts[category.name] ?? 0;
                 const percentage = maxSpending > 0 ? (amount / maxSpending) * 100 : 0;
                 const isSelected = selectedCategoryId === category.id;
@@ -157,22 +164,16 @@ export function CategoryList() {
                 return (
                   <button
                     key={category.id}
-                    onClick={() =>
-                      setSelectedCategoryId(isSelected ? null : category.id)
-                    }
+                    onClick={() => setSelectedCategoryId(isSelected ? null : category.id)}
                     className={cn(
                       "group relative flex flex-col gap-1.5 rounded-xl border p-3 text-left transition-all",
-                      "bg-gray-50/50 border-gray-100 hover:bg-gray-100",
-                      "dark:bg-slate-950/50 dark:border-slate-800 dark:hover:bg-slate-800",
+                      "bg-gray-50/50 border-gray-100 hover:bg-gray-100 dark:bg-slate-950/50 dark:border-slate-800 dark:hover:bg-slate-800",
                       isSelected && "border-indigo-500 bg-indigo-50/50 dark:border-indigo-500 dark:bg-indigo-950/30"
                     )}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-gray-700 dark:text-slate-200">
-                        {category.name}
-                      </span>
+                      <span className="font-bold text-gray-700 dark:text-slate-200">{category.name}</span>
                       <div className="flex items-center gap-2">
-                        {/* Изменили цвет здесь: с slate-400 на slate-100 для яркости */}
                         <span className="text-xs font-mono font-bold text-gray-500 dark:text-slate-100">
                           {formatCurrency(amount, currency)}
                         </span>
@@ -181,16 +182,13 @@ export function CategoryList() {
                             e.stopPropagation();
                             handleDeleteCategory(category.id);
                           }}
-                          className="opacity-0 transition-opacity group-hover:opacity-100 p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-md"
+                          className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-md transition-opacity group-hover:opacity-100 opacity-0"
                         >
-                          <X className="size-3.5 text-gray-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400" />
+                          <X className="size-3.5 text-gray-400 hover:text-red-500" />
                         </div>
                       </div>
                     </div>
-                    <Progress
-                      value={percentage}
-                      className="h-1 dark:bg-slate-800"
-                    />
+                    <Progress value={percentage} className="h-1 dark:bg-slate-800" />
                   </button>
                 );
               })}
