@@ -6,11 +6,11 @@ import { useDashboard } from "@/contexts/DashboardContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { transactionsAPI, TotalResponse } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
-// 1. ИМПОРТИРУЕМ НОВЫЙ КОМПОНЕНТ
 import { AverageStats } from "./AverageStats";
 
 export function StatCards() {
-  const { currency, dateRange, formatDateForAPI } = useDashboard();
+  // Добавляем refreshTicket из контекста
+  const { currency, dateRange, formatDateForAPI, refreshTicket } = useDashboard();
   const { isAuthenticated } = useAuth();
 
   const { data, isLoading } = useSWR<TotalResponse>(
@@ -20,6 +20,7 @@ export function StatCards() {
           currency,
           formatDateForAPI(dateRange.start),
           formatDateForAPI(dateRange.end),
+          refreshTicket, // Добавляем тикет в ключ SWR для автообновления
         ]
       : null,
     () =>
@@ -97,10 +98,7 @@ export function StatCards() {
   ];
 
   return (
-    // 2. ОБЕРТКА, ЧТОБЫ ВСЁ БЫЛО В ОДНУ КОЛОНКУ
     <div className="flex flex-col gap-6">
-
-      {/* Твоя оригинальная сетка карточек */}
       <div className="grid gap-4 sm:grid-cols-3">
         {stats.map((stat) => (
           <Card
@@ -134,9 +132,7 @@ export function StatCards() {
         ))}
       </div>
 
-      {/* 3. ВСТАВЛЯЕМ СРЕДНИЕ ПОД КАРТОЧКАМИ */}
       <AverageStats />
-
     </div>
   );
 }

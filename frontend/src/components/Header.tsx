@@ -20,6 +20,7 @@ import { useDashboard, Currency } from "@/contexts/DashboardContext";
 import { transactionsAPI } from "@/lib/api";
 import { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/components/ui/use-toast"; // ИМПОРТ ХУКА
 
 const currencies: { value: Currency; label: string; symbol: string }[] = [
   { value: "UAH", label: "UAH", symbol: "₴" },
@@ -31,12 +32,12 @@ const currencies: { value: Currency; label: string; symbol: string }[] = [
 
 export function Header() {
   const { user, logout, setShowAuthModal } = useAuth();
-  // Достаем refreshData из контекста
   const { currency, setCurrency, dateRange, setDateRange, setAllTime, refreshData } = useDashboard();
+  const { toast } = useToast(); // ИНИЦИАЛИЗАЦИЯ
 
   const [isDark, setIsDark] = React.useState(false);
   const [isExporting, setIsExporting] = React.useState(false);
-  const [isImporting, setIsImporting] = React.useState(false); // Состояние для импорта
+  const [isImporting, setIsImporting] = React.useState(false);
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -45,7 +46,7 @@ export function Header() {
     setIsDark(isDarkMode);
   }, []);
 
-  // ЛОГИКА ЭКСПОРТА
+  // ЛОГИКА ЭКСПОРТА С TOAST
   const handleExport = async () => {
     if (isExporting) return;
     setIsExporting(true);
@@ -60,18 +61,27 @@ export function Header() {
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Экспорт завершен",
+        description: "Файл с транзакциями успешно сохранен",
+      });
     } catch (err) {
-      console.error("Export error:", err);
+      toast({
+        variant: "destructive",
+        title: "Ошибка экспорта",
+        description: "Не удалось сформировать файл для загрузки",
+      });
     } finally {
       setIsExporting(false);
     }
   };
 
-  // ЛОГИКА ИМПОРТА
   const handleImportClick = () => {
     fileInputRef.current?.click();
   };
 
+  // ЛОГИКА ИМПОРТА С TOAST
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -79,16 +89,21 @@ export function Header() {
     setIsImporting(true);
     try {
       const result = await transactionsAPI.importTransactions(file);
-
-      // ВЫЗЫВАЕМ ОБНОВЛЕНИЕ ДАННЫХ ВМЕСТО RELOAD
       refreshData();
 
-      alert(result.message || "Данные успешно импортированы");
+      toast({
+        title: "Импорт успешно выполнен",
+        description: result.message || "Ваши транзакции загружены",
+      });
     } catch (err: any) {
-      alert(`Ошибка импорта: ${err.message}`);
+      toast({
+        variant: "destructive",
+        title: "Ошибка импорта",
+        description: err.message || "Не удалось обработать JSON-файл",
+      });
     } finally {
       setIsImporting(false);
-      if (event.target) event.target.value = ""; // Сброс инпута
+      if (event.target) event.target.value = "";
     }
   };
 
@@ -124,7 +139,6 @@ export function Header() {
     <header className="sticky top-0 z-40 border-b bg-white/90 dark:bg-slate-950/90 backdrop-blur shadow-sm transition-colors duration-300">
       <div className="flex h-16 w-full items-center justify-between gap-2 px-4 md:px-8">
 
-        {/* Логотип */}
         <div className="flex items-center gap-2 shrink-0 group cursor-pointer">
           <div className="flex size-9 items-center justify-center rounded-lg bg-indigo-600 text-white transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
             <Wallet className="size-5" />
@@ -135,8 +149,6 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-2 md:gap-3 overflow-hidden">
-
-          {/* Скрытый инпут для импорта */}
           <input
             type="file"
             ref={fileInputRef}
@@ -145,7 +157,6 @@ export function Header() {
             className="hidden"
           />
 
-          {/* КНОПКА ИМПОРТА */}
           {user && (
             <Button
               variant="ghost"
@@ -162,7 +173,6 @@ export function Header() {
             </Button>
           )}
 
-          {/* КНОПКА ЭКСПОРТА */}
           {user && (
             <Button
               variant="ghost"
@@ -179,7 +189,6 @@ export function Header() {
             </Button>
           )}
 
-          {/* Кнопка темы */}
           <Button
             variant="ghost"
             size="icon"
@@ -193,7 +202,6 @@ export function Header() {
             )}
           </Button>
 
-          {/* Календарь */}
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -240,7 +248,6 @@ export function Header() {
             </PopoverContent>
           </Popover>
 
-          {/* Валюта */}
           <Select
             value={currency}
             onValueChange={(v) => setCurrency(v as Currency)}
@@ -260,7 +267,6 @@ export function Header() {
             </SelectContent>
           </Select>
 
-          {/* Блок пользователя / Выйти */}
           {user ? (
             <div className="flex items-center gap-2 shrink-0">
               <span className="hidden lg:inline text-sm font-bold text-gray-600 dark:text-slate-400 border-r dark:border-slate-800 pr-3 italic">
