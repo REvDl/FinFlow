@@ -8,6 +8,8 @@ from fastapi.responses import StreamingResponse
 from pydantic import TypeAdapter
 
 from core.dependencies import get_session, get_current_user
+from core.exceptions import BrokenFileError
+from schemes.data import TransactionData
 from schemes.transaction import TransactionCreate
 from services.transaction import TransactionDAO
 
@@ -39,20 +41,18 @@ async def import_data(file: UploadFile = File(...),
                       current_user=Depends(get_current_user),
                       ):
     contents = await file.read()
-    list_transactions = []
     try:
         raw_json = json.loads(contents)
-        adapter = TypeAdapter(List[TransactionCreate])
+        adapter = TypeAdapter(List[TransactionData])
         valid_data = adapter.validate_python(raw_json)
-        for key in valid_data:
-            data = key.model_dump()
-            data["user_id"] = current_user.id
-            list_transactions.append(data)
     except Exception:
-        raise ValueError
-    await TransactionDAO.create_transactions_import(session=session, data=list_transactions)
+        raise BrokenFileError("Broken file")
+    count = await TransactionDAO.create_transactions_import(session=session,
+                                                            user_id=current_user.id,
+                                                            valid_data=valid_data)
+
     await session.commit()
-    return {"message":"Data import completed successfully"}
+    return {"message": f"Data import completed successfully: {count}"}
 
 
 

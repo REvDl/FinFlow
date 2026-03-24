@@ -19,7 +19,7 @@ class CategoryNotFound(FinFlowException):pass
 class UserNotFound(FinFlowException):pass
 class DataError(FinFlowException): pass
 class UserAlreadyExists(FinFlowException): pass
-
+class BrokenFileError(FinFlowException): pass
 
 ERROR_MAP: Dict[Type[FinFlowException], int] = {
     AuthUserAlreadyExists: status.HTTP_409_CONFLICT,
@@ -34,4 +34,5 @@ ERROR_MAP: Dict[Type[FinFlowException], int] = {
     UserNotFound: status.HTTP_404_NOT_FOUND,
     UserAlreadyExists: status.HTTP_409_CONFLICT,
     DataError: status.HTTP_422_UNPROCESSABLE_CONTENT,
+    BrokenFileError: status.HTTP_400_BAD_REQUEST,
 }

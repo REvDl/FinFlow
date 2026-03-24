@@ -28,9 +28,36 @@ class TransactionDAO:
         return new_spending
 
     @staticmethod
-    async def create_transactions_import(session: AsyncSession, data: list[dict]):
-        stmt = insert(TransactionOrm).values(data)
-        return await session.execute(stmt)
+    async def create_transactions_import(session: AsyncSession, user_id:int, valid_data: list):
+        unique_category_names = {t.category_name for t in valid_data}
+        stmt = select(CategoriesOrm).filter(
+            CategoriesOrm.user_id == user_id,
+            CategoriesOrm.name.in_(unique_category_names)
+        )
+        result = await session.execute(stmt)
+        existing_categories = result.scalars().all()
+        category_map = {c.name: c.id for c in existing_categories}
+        missing_names = unique_category_names - set(category_map.keys())
+        if missing_names:
+            new_cats = [CategoriesOrm(user_id=user_id, name=name) for name in missing_names]
+            session.add_all(new_cats)
+            await session.flush()  # Чтобы база выдала ID новым категориям
+            # Добавляем новые ID в нашу мапу
+            for nc in new_cats:
+                category_map[nc.name] = nc.id
+        to_insert = []
+        for t in valid_data:
+            data = t.model_dump()
+            cat_name = data.pop("category_name")
+            data["category_id"] = category_map[cat_name]
+            data["user_id"] = user_id
+            to_insert.append(data)
+
+        # 5. Выполняем массовую вставку всех транзакций одним запросом
+        if to_insert:
+            await session.execute(insert(TransactionOrm).values(to_insert))
+
+        return len(to_insert)
 
     @staticmethod
     async def read_transaction_one(session: AsyncSession, spending_id: int):
@@ -41,9 +68,11 @@ class TransactionDAO:
                                         user_id: int):
         stmt = text("""
             SELECT json_agg(t) FROM (
-                SELECT id, name, description, price, category_id, created_at, currency, transaction_type
-                FROM transactions
-                WHERE user_id = :user_id
+                SELECT t.id, t.name, t.description, t.price, c.name as category_name, 
+                       t.created_at, t.currency, t.transaction_type
+                FROM transactions t
+                JOIN categories c ON t.category_id = c.id
+                WHERE t.user_id = :user_id
             ) t
         """)
         result = await session.execute(stmt, {"user_id": user_id})
