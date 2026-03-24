@@ -1,5 +1,5 @@
 import * as React from "react";
-import { LogOut, Wallet, CalendarIcon, RotateCcw, Sun, Moon, DownloadCloud } from "lucide-react"; // Добавил DownloadCloud
+import { LogOut, Wallet, CalendarIcon, RotateCcw, Sun, Moon, DownloadCloud, UploadCloud } from "lucide-react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +17,7 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDashboard, Currency } from "@/contexts/DashboardContext";
-import { transactionsAPI } from "@/lib/api"; // ИМПОРТ ТВОЕГО АПИ
+import { transactionsAPI } from "@/lib/api";
 import { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
 
@@ -31,16 +31,21 @@ const currencies: { value: Currency; label: string; symbol: string }[] = [
 
 export function Header() {
   const { user, logout, setShowAuthModal } = useAuth();
-  const { currency, setCurrency, dateRange, setDateRange, setAllTime } = useDashboard();
+  // Достаем refreshData из контекста
+  const { currency, setCurrency, dateRange, setDateRange, setAllTime, refreshData } = useDashboard();
+
   const [isDark, setIsDark] = React.useState(false);
-  const [isExporting, setIsExporting] = React.useState(false); // Состояние для лоадера кнопки
+  const [isExporting, setIsExporting] = React.useState(false);
+  const [isImporting, setIsImporting] = React.useState(false); // Состояние для импорта
+
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
     const isDarkMode = document.documentElement.classList.contains("dark");
     setIsDark(isDarkMode);
   }, []);
 
-  // ЛОГИКА СКАЧИВАНИЯ
+  // ЛОГИКА ЭКСПОРТА
   const handleExport = async () => {
     if (isExporting) return;
     setIsExporting(true);
@@ -59,6 +64,31 @@ export function Header() {
       console.error("Export error:", err);
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  // ЛОГИКА ИМПОРТА
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    try {
+      const result = await transactionsAPI.importTransactions(file);
+
+      // ВЫЗЫВАЕМ ОБНОВЛЕНИЕ ДАННЫХ ВМЕСТО RELOAD
+      refreshData();
+
+      alert(result.message || "Данные успешно импортированы");
+    } catch (err: any) {
+      alert(`Ошибка импорта: ${err.message}`);
+    } finally {
+      setIsImporting(false);
+      if (event.target) event.target.value = ""; // Сброс инпута
     }
   };
 
@@ -106,7 +136,33 @@ export function Header() {
 
         <div className="flex items-center gap-2 md:gap-3 overflow-hidden">
 
-          {/* НОВАЯ КНОПКА ЭКСПОРТА */}
+          {/* Скрытый инпут для импорта */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            accept=".json"
+            className="hidden"
+          />
+
+          {/* КНОПКА ИМПОРТА */}
+          {user && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleImportClick}
+              disabled={isImporting}
+              title="Импорт транзакций из JSON"
+              className={cn(
+                "rounded-lg border border-gray-200 dark:border-slate-800 dark:hover:bg-slate-800 dark:text-white shrink-0 transition-all",
+                isImporting && "opacity-50"
+              )}
+            >
+              <UploadCloud className={cn("size-4 text-emerald-500", isImporting && "animate-bounce")} />
+            </Button>
+          )}
+
+          {/* КНОПКА ЭКСПОРТА */}
           {user && (
             <Button
               variant="ghost"

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback } from "react";
-import { startOfMonth, endOfMonth, format, parseISO, startOfDay, endOfDay } from "date-fns";
+import { startOfMonth, endOfMonth, format } from "date-fns";
 import { transactionsAPI } from "@/lib/api";
 
 export type Currency = "UAH" | "USD" | "EUR" | "RUB" | "CZK";
@@ -21,6 +21,9 @@ interface DashboardContextType {
   selectedCategoryId: number | null;
   setSelectedCategoryId: (id: number | null) => void;
   formatDateForAPI: (date: Date) => string;
+  // --- НОВЫЕ ПОЛЯ ДЛЯ ОБНОВЛЕНИЯ ДАННЫХ ---
+  refreshTicket: number;
+  refreshData: () => void;
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(
@@ -39,10 +42,18 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     null
   );
 
+  // Счетчик, изменение которого заставит useEffect-ы перекачивать данные
+  const [refreshTicket, setRefreshTicket] = useState(0);
+
   // Используем useCallback для стабильности
   const formatDateForAPI = useCallback((date: Date) => format(date, "yyyy-MM-dd"), []);
 
-const setAllTime = async () => {
+  // Функция для инкремента тикета. Вызывай её после импорта, удаления или создания транзакции.
+  const refreshData = useCallback(() => {
+    setRefreshTicket((prev) => prev + 1);
+  }, []);
+
+  const setAllTime = async () => {
     try {
       const response = await transactionsAPI.getExtremeDates();
 
@@ -50,12 +61,8 @@ const setAllTime = async () => {
         const { min_data, max_data } = response;
 
         const parseStrict = (dateStr: string) => {
-          // Берем только YYYY-MM-DD
           const cleanStr = dateStr.trim().split(" ")[0] || dateStr;
           const [y, m, d] = cleanStr.split(/[-T ]/).map(Number);
-
-          // Создаем дату в 12:00 дня.
-          // Это "бетонная" защита от прыжков часовых поясов.
           return new Date(y, m - 1, d, 12, 0, 0);
         };
 
@@ -84,6 +91,9 @@ const setAllTime = async () => {
         selectedCategoryId,
         setSelectedCategoryId,
         formatDateForAPI,
+        // --- ПЕРЕДАЕМ НОВЫЕ ПОЛЯ ---
+        refreshTicket,
+        refreshData,
       }}
     >
       {children}
