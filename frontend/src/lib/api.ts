@@ -217,7 +217,6 @@ export const transactionsAPI = {
 
   // МЕТОД ДЛЯ ЭКСПОРТА JSON
   exportTransactions: async () => {
-    // Используем прямой fetch, так как fetchAPI настроен на .json()
     const url = `${API_BASE}/data/export`;
     const response = await fetch(url, {
       method: "GET",
@@ -229,7 +228,28 @@ export const transactionsAPI = {
         throw new Error(error.detail || `Export Error: ${response.status}`);
     }
 
-    return response.blob(); // Возвращаем файл как бинарный объект
+    return response.blob();
+  },
+
+  // МЕТОД ДЛЯ ИМПОРТА JSON
+  importTransactions: async (file: File) => {
+    const url = `${API_BASE}/data/import`;
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await fetch(url, {
+      method: "POST",
+      body: formData,
+      credentials: "include",
+      // Content-Type не задаем, браузер сам выставит multipart/form-data
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || `Import Error: ${response.status}`);
+    }
+
+    return response.json();
   },
 };
 
