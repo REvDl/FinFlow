@@ -2,26 +2,17 @@ import * as React from "react"
 import type { ToastProps } from "@/components/ui/toast"
 
 const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 5000
 
 type ToasterToast = ToastProps & {
   id: string
   title?: React.ReactNode
   description?: React.ReactNode
   action?: React.ReactNode
+  variant?: "default" | "destructive"
 }
-
-const actionTypes = {
-  ADD_TOAST: "ADD_TOAST",
-  UPDATE_TOAST: "UPDATE_TOAST",
-  DISMISS_TOAST: "DISMISS_TOAST",
-  REMOVE_TOAST: "REMOVE_TOAST",
-} as const
 
 let count = 0
 function genId() { count = (count + 1) % Number.MAX_SAFE_INTEGER; return count.toString() }
-
-const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
 
 const dispatch = (action: any) => {
   memoryState = reducer(memoryState, action)

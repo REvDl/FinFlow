@@ -21,9 +21,6 @@ interface DashboardContextType {
   selectedCategoryId: number | null;
   setSelectedCategoryId: (id: number | null) => void;
   formatDateForAPI: (date: Date) => string;
-  // --- НОВЫЕ ПОЛЯ ДЛЯ ОБНОВЛЕНИЯ ДАННЫХ ---
-  refreshTicket: number;
-  refreshData: () => void;
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(
@@ -42,16 +39,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     null
   );
 
-  // Счетчик, изменение которого заставит useEffect-ы перекачивать данные
-  const [refreshTicket, setRefreshTicket] = useState(0);
-
-  // Используем useCallback для стабильности
   const formatDateForAPI = useCallback((date: Date) => format(date, "yyyy-MM-dd"), []);
-
-  // Функция для инкремента тикета. Вызывай её после импорта, удаления или создания транзакции.
-  const refreshData = useCallback(() => {
-    setRefreshTicket((prev) => prev + 1);
-  }, []);
 
   const setAllTime = async () => {
     try {
@@ -91,9 +79,6 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         selectedCategoryId,
         setSelectedCategoryId,
         formatDateForAPI,
-        // --- ПЕРЕДАЕМ НОВЫЕ ПОЛЯ ---
-        refreshTicket,
-        refreshData,
       }}
     >
       {children}
