@@ -15,9 +15,11 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDashboard, Currency } from "@/contexts/DashboardContext";
 import { transactionsAPI } from "@/lib/api";
+import { invalidateAfterTransactionChange, queryKeys } from "@/lib/queryKeys";
 import { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast"; // ИМПОРТ ХУКА
@@ -32,7 +34,8 @@ const currencies: { value: Currency; label: string; symbol: string }[] = [
 
 export function Header() {
   const { user, logout, setShowAuthModal } = useAuth();
-  const { currency, setCurrency, dateRange, setDateRange, setAllTime, refreshData } = useDashboard();
+  const queryClient = useQueryClient();
+  const { currency, setCurrency, dateRange, setDateRange, setAllTime } = useDashboard();
   const { toast } = useToast(); // ИНИЦИАЛИЗАЦИЯ
 
   const [isDark, setIsDark] = React.useState(false);
@@ -89,7 +92,8 @@ export function Header() {
     setIsImporting(true);
     try {
       const result = await transactionsAPI.importTransactions(file);
-      refreshData();
+      invalidateAfterTransactionChange(queryClient);
+      queryClient.invalidateQueries({ queryKey: queryKeys.categories });
 
       toast({
         title: "Импорт успешно выполнен",

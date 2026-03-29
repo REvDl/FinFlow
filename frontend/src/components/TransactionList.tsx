@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, useState } from "react";
-import useSWRInfinite from "swr/infinite";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,6 +13,7 @@ import {
   PaginatedTransactions,
   Transaction,
 } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 import { formatCurrency, cn } from "@/lib/utils";
 import { TransactionModal } from "./TransactionModal";
 
@@ -25,7 +26,6 @@ export function TransactionList() {
     selectedCategoryId,
     dateRange,
     formatDateForAPI,
-    refreshTicket, // 1. ДОБАВЛЯЕМ ТИКЕТ ИЗ КОНТЕКСТА
   } = useDashboard();
 
   const { isAuthenticated } = useAuth();
@@ -34,81 +34,63 @@ export function TransactionList() {
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  const getKey = (
-    pageIndex: number,
-    previousPageData: PaginatedTransactions | null
-  ) => {
-    if (!isAuthenticated) return null;
-    if (previousPageData && !previousPageData.has_more) return null;
+  const start = formatDateForAPI(dateRange.start);
+  const end = formatDateForAPI(dateRange.end);
 
-    const params: Record<string, string | number> = {
-      type: transactionFilter,
-      limit: PAGE_SIZE,
-      start: formatDateForAPI(dateRange.start),
-      end: formatDateForAPI(dateRange.end),
-    };
+  const listQueryKey = queryKeys.transactionsInfinite(
+    transactionFilter,
+    selectedCategoryId,
+    start,
+    end
+  );
 
-    const cursor = previousPageData?.next_cursor;
-    if (cursor) {
-      params.cursor_time = cursor.cursor_time;
-      params.cursor_id = cursor.cursor_id;
-    }
-
-    // 2. ВКЛЮЧАЕМ refreshTicket В КЛЮЧИ (дизайн не трогаем, только логику SWR)
-    return selectedCategoryId
-      ? [
-          "category-transactions",
-          selectedCategoryId,
-          transactionFilter,
-          formatDateForAPI(dateRange.start),
-          formatDateForAPI(dateRange.end),
-          refreshTicket, // ТИКЕТ ТУТ
-          pageIndex,
-          params,
-        ]
-      : [
-          "transactions",
-          transactionFilter,
-          formatDateForAPI(dateRange.start),
-          formatDateForAPI(dateRange.end),
-          refreshTicket, // И ТУТ
-          pageIndex,
-          params,
-        ];
-  };
-
-  const { data, size, setSize, isLoading, isValidating, mutate } =
-    useSWRInfinite<PaginatedTransactions>(getKey, async ([key, ...args]) => {
-      if (key === "category-transactions") {
-        const [categoryId, , , , , , params] = args as [
-          number,
-          string,
-          string,
-          string,
-          number,
-          number, // Индекс для тикета
-          Record<string, string | number>
-        ];
-        return categoriesAPI.getTransactions(categoryId, params as any);
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+  } = useInfiniteQuery({
+    queryKey: listQueryKey,
+    initialPageParam: undefined as
+      | { cursor_time: string; cursor_id: number }
+      | undefined,
+    queryFn: async ({ pageParam }) => {
+      const params: Record<string, string | number> = {
+        type: transactionFilter,
+        limit: PAGE_SIZE,
+        start,
+        end,
+      };
+      if (pageParam) {
+        params.cursor_time = pageParam.cursor_time;
+        params.cursor_id = pageParam.cursor_id;
       }
-      const params = args[args.length - 1] as Record<string, string | number>;
-      return transactionsAPI.list(params as any);
-    });
+      if (selectedCategoryId) {
+        return categoriesAPI.getTransactions(selectedCategoryId, params);
+      }
+      return transactionsAPI.list(params);
+    },
+    getNextPageParam: (lastPage: PaginatedTransactions) =>
+      lastPage.has_more && lastPage.next_cursor
+        ? lastPage.next_cursor
+        : undefined,
+    enabled: isAuthenticated,
+  });
 
-  // --- ОСТАЛЬНОЙ КОД БЕЗ ИЗМЕНЕНИЙ (ТВОЙ ОРИГИНАЛЬНЫЙ ДИЗАЙН) ---
-  const transactions = data?.flatMap((page) => page.items) ?? [];
-  const hasMore = data?.[data.length - 1]?.has_more ?? false;
-  const isLoadingMore =
-    isLoading || (size > 0 && data && typeof data[size - 1] === "undefined");
+  const transactions =
+    data?.pages.flatMap((page) => page.items) ?? [];
+  const hasMore = !!hasNextPage;
+  const isLoadingMore = isFetchingNextPage;
 
   const handleObserver = useCallback(
     (entries: IntersectionObserverEntry[]) => {
       const [target] = entries;
-      if (target.isIntersecting && hasMore && !isValidating) {
-        setSize((s) => s + 1);
+      if (target.isIntersecting && hasMore && !isFetchingNextPage) {
+        fetchNextPage();
       }
     },
-    [hasMore, isValidating, setSize]
+    [hasMore, isFetchingNextPage, fetchNextPage]
   );
 
   useEffect(() => {
@@ -131,7 +113,8 @@ export function TransactionList() {
     setTransactionFilter(value as TransactionFilter);
   };
 
-  const cardBaseStyles = "flex flex-1 flex-col overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm dark:bg-slate-900 dark:border-slate-800 transition-colors duration-300";
+  const cardBaseStyles =
+    "flex flex-1 flex-col overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm dark:bg-slate-900 dark:border-slate-800 transition-colors duration-300";
 
   if (!isAuthenticated) {
     return (
@@ -245,10 +228,7 @@ export function TransactionList() {
         transaction={selectedTransaction}
         open={!!selectedTransaction}
         onOpenChange={(open) => !open && setSelectedTransaction(null)}
-        onSuccess={() => {
-          setSelectedTransaction(null);
-          mutate();
-        }}
+        onSuccess={() => setSelectedTransaction(null)}
       />
     </>
   );

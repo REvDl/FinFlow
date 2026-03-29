@@ -3,7 +3,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
-import useSWR, { mutate } from "swr";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  InfiniteData,
+} from "@tanstack/react-query";
 import { CalendarIcon, Trash2 } from "lucide-react";
 import {
   Dialog,
@@ -35,8 +40,9 @@ import {
   Transaction,
   transactionsAPI,
   categoriesAPI,
-  Category,
+  PaginatedTransactions,
 } from "@/lib/api";
+import { queryKeys, invalidateAfterTransactionChange } from "@/lib/queryKeys";
 import { cn } from "@/lib/utils";
 
 const currencies = ["UAH", "USD", "EUR", "RUB", "CZK"] as const;
@@ -66,14 +72,15 @@ export function TransactionModal({
   onOpenChange,
   onSuccess,
 }: TransactionModalProps) {
-  const [isDeleting, setIsDeleting] = useState(false);
+  const queryClient = useQueryClient();
   const [date, setDate] = useState<Date | undefined>(
     transaction ? new Date(transaction.created_at) : new Date()
   );
 
-  const { data: categories } = useSWR<Category[]>("categories", () =>
-    categoriesAPI.list()
-  );
+  const { data: categories } = useQuery({
+    queryKey: queryKeys.categories,
+    queryFn: () => categoriesAPI.list(),
+  });
 
   const form = useForm<TransactionFormData>({
     resolver: zodResolver(transactionSchema),
@@ -84,6 +91,56 @@ export function TransactionModal({
       category_id: 0,
       transaction_type: "spending",
       description: "",
+    },
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: async (payload: TransactionFormData & { created_at?: string }) => {
+      if (transaction) {
+        return transactionsAPI.update(transaction.id, payload);
+      }
+      return transactionsAPI.create(payload);
+    },
+    onSuccess: () => {
+      invalidateAfterTransactionChange(queryClient);
+      onSuccess();
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => transactionsAPI.delete(id),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ["transactions", "infinite"] });
+      const previousQueries = queryClient.getQueriesData<
+        InfiniteData<PaginatedTransactions>
+      >({ queryKey: ["transactions", "infinite"] });
+
+      queryClient.setQueriesData<InfiniteData<PaginatedTransactions>>(
+        { queryKey: ["transactions", "infinite"] },
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            pages: old.pages.map((page) => ({
+              ...page,
+              items: page.items.filter((t) => t.id !== id),
+            })),
+          };
+        }
+      );
+
+      return { previousQueries };
+    },
+    onError: (_err, _id, ctx) => {
+      ctx?.previousQueries?.forEach(([key, data]) => {
+        queryClient.setQueryData(key, data);
+      });
+    },
+    onSuccess: () => {
+      onSuccess();
+    },
+    onSettled: () => {
+      invalidateAfterTransactionChange(queryClient);
     },
   });
 
@@ -117,16 +174,7 @@ export function TransactionModal({
         ...data,
         created_at: date ? format(date, "yyyy-MM-dd'T'HH:mm:ss") : undefined,
       };
-
-      if (transaction) {
-        await transactionsAPI.update(transaction.id, payload);
-      } else {
-        await transactionsAPI.create(payload);
-      }
-
-      mutate((key) => Array.isArray(key) && key[0] === "transactions");
-      mutate((key) => Array.isArray(key) && key[0] === "totals");
-      onSuccess();
+      await saveMutation.mutateAsync(payload);
     } catch (err) {
       console.error("Failed to save transaction:", err);
     }
@@ -134,18 +182,15 @@ export function TransactionModal({
 
   const handleDelete = async () => {
     if (!transaction) return;
-    setIsDeleting(true);
     try {
-      await transactionsAPI.delete(transaction.id);
-      mutate((key) => Array.isArray(key) && key[0] === "transactions");
-      mutate((key) => Array.isArray(key) && key[0] === "totals");
-      onSuccess();
+      await deleteMutation.mutateAsync(transaction.id);
     } catch (err) {
       console.error("Failed to delete transaction:", err);
-    } finally {
-      setIsDeleting(false);
     }
   };
+
+  const isDeleting = deleteMutation.isPending;
+  const isSaving = saveMutation.isPending;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -308,8 +353,8 @@ export function TransactionModal({
                 )}
               </Button>
             )}
-            <Button type="submit" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? (
+            <Button type="submit" disabled={isSaving}>
+              {isSaving ? (
                 <Spinner />
               ) : transaction ? (
                 "Save changes"
