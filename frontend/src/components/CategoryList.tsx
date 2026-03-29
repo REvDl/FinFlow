@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import useSWR, { useSWRConfig } from "swr";
+import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, X, Tag } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,11 +9,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/spinner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDashboard } from "@/contexts/DashboardContext";
-import { categoriesAPI, transactionsAPI, Category, TotalResponse } from "@/lib/api";
+import { categoriesAPI, transactionsAPI, Category } from "@/lib/api";
+import { queryKeys, invalidateAfterCategoryChange } from "@/lib/queryKeys";
 import { formatCurrency, cn } from "@/lib/utils";
 
 export function CategoryList() {
-  const { mutate } = useSWRConfig();
+  const queryClient = useQueryClient();
   const { isAuthenticated } = useAuth();
   const {
     selectedCategoryId,
@@ -21,37 +22,66 @@ export function CategoryList() {
     currency,
     dateRange,
     formatDateForAPI,
-    refreshTicket,
-    refreshData,
   } = useDashboard();
 
   const [newCategory, setNewCategory] = useState("");
   const [isAdding, setIsAdding] = useState(false);
 
-  // КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Используем фиксированный ключ "categories"
-  // Это гарантирует, что все компоненты смотрят в одну корзину
-  const { data: categories, isLoading } = useSWR<Category[]>(
-    isAuthenticated ? "categories" : null,
-    () => categoriesAPI.list()
+  const { data: categories, isLoading } = useQuery({
+    queryKey: queryKeys.categories,
+    queryFn: () => categoriesAPI.list(),
+    enabled: isAuthenticated,
+  });
+
+  const totalsQueryKey = queryKeys.totals(
+    currency,
+    formatDateForAPI(dateRange.start),
+    formatDateForAPI(dateRange.end)
   );
 
-  const { data: totals } = useSWR<TotalResponse>(
-    isAuthenticated
-      ? [
-          "totals",
-          currency,
-          formatDateForAPI(dateRange.start),
-          formatDateForAPI(dateRange.end),
-          refreshTicket,
-        ]
-      : null,
-    () =>
+  const { data: totals } = useQuery({
+    queryKey: totalsQueryKey,
+    queryFn: () =>
       transactionsAPI.getTotal({
         to_currency: currency,
         start: formatDateForAPI(dateRange.start),
         end: formatDateForAPI(dateRange.end),
-      })
-  );
+      }),
+    enabled: isAuthenticated,
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (name: string) => categoriesAPI.create({ name }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.categories });
+      queryClient.invalidateQueries({ queryKey: ["totals"] });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => categoriesAPI.delete(id),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.categories });
+      const previous = queryClient.getQueryData<Category[]>(queryKeys.categories);
+      queryClient.setQueryData<Category[]>(queryKeys.categories, (old) =>
+        old?.filter((c) => c.id !== id) ?? []
+      );
+      return { previous };
+    },
+    onError: (_err, _id, ctx) => {
+      if (ctx?.previous) {
+        queryClient.setQueryData(queryKeys.categories, ctx.previous);
+      }
+    },
+    onSuccess: (_data, id) => {
+      if (selectedCategoryId === id) {
+        setSelectedCategoryId(null);
+      }
+    },
+    onSettled: () => {
+      invalidateAfterCategoryChange(queryClient);
+    },
+  });
 
   const categoryAmounts = totals?.categories ?? {};
 
@@ -69,13 +99,9 @@ export function CategoryList() {
   const handleAddCategory = async () => {
     if (!newCategory.trim()) return;
     setIsAdding(true);
-
     try {
-      await categoriesAPI.create({ name: newCategory.trim() });
+      await createMutation.mutateAsync(newCategory.trim());
       setNewCategory("");
-      // Мгновенно обновляем ключ "categories"
-      await mutate("categories");
-      refreshData();
     } catch (err) {
       console.error("Add failed:", err);
     } finally {
@@ -83,29 +109,8 @@ export function CategoryList() {
     }
   };
 
-  const handleDeleteCategory = async (id: number) => {
-    // 1. Оптимистичное удаление из UI
-    // Мы сразу выкидываем категорию из кеша, не дожидаясь сервера
-    mutate(
-      "categories",
-      (current: Category[] | undefined) => current?.filter((c) => c.id !== id),
-      false
-    );
-
-    try {
-      await categoriesAPI.delete(id);
-      // 2. После успеха синхронизируемся с сервером начисто
-      await mutate("categories");
-      refreshData();
-
-      if (selectedCategoryId === id) {
-        setSelectedCategoryId(null);
-      }
-    } catch (err) {
-      console.error("Delete failed:", err);
-      // Если сервак ответил ошибкой — вернем всё как было
-      mutate("categories");
-    }
+  const handleDeleteCategory = (id: number) => {
+    deleteMutation.mutate(id);
   };
 
   if (!isAuthenticated) return null;
@@ -142,7 +147,7 @@ export function CategoryList() {
           <Button
             size="sm"
             onClick={handleAddCategory}
-            disabled={isAdding || !newCategory.trim()}
+            disabled={isAdding || !newCategory.trim() || createMutation.isPending}
             className="h-8 px-3 bg-indigo-600 hover:bg-indigo-700 text-white"
           >
             {isAdding ? <Spinner className="size-3" /> : <Plus className="size-4" />}

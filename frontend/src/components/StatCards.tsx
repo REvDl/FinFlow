@@ -1,4 +1,4 @@
-import useSWR from "swr";
+import { useQuery } from "@tanstack/react-query";
 import { TrendingUp, TrendingDown, Wallet } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
@@ -7,31 +7,31 @@ import { useAuth } from "@/contexts/AuthContext";
 import { transactionsAPI, TotalResponse } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
 import { AverageStats } from "./AverageStats";
+import { queryKeys } from "@/lib/queryKeys";
 
 export function StatCards() {
-  // Добавляем refreshTicket из контекста
-  const { currency, dateRange, formatDateForAPI, refreshTicket } = useDashboard();
+  const { currency, dateRange, formatDateForAPI } = useDashboard();
   const { isAuthenticated } = useAuth();
 
-  const { data, isLoading } = useSWR<TotalResponse>(
-    isAuthenticated
-      ? [
-          "totals",
-          currency,
-          formatDateForAPI(dateRange.start),
-          formatDateForAPI(dateRange.end),
-          refreshTicket, // Добавляем тикет в ключ SWR для автообновления
-        ]
-      : null,
-    () =>
+  const totalsKey = queryKeys.totals(
+    currency,
+    formatDateForAPI(dateRange.start),
+    formatDateForAPI(dateRange.end)
+  );
+
+  const { data, isLoading } = useQuery<TotalResponse>({
+    queryKey: totalsKey,
+    queryFn: () =>
       transactionsAPI.getTotal({
         to_currency: currency,
         start: formatDateForAPI(dateRange.start),
         end: formatDateForAPI(dateRange.end),
-      })
-  );
+      }),
+    enabled: isAuthenticated,
+  });
 
-  const cardStyles = "rounded-3xl border border-gray-100 bg-white dark:bg-slate-900 dark:border-slate-800 shadow-sm transition-all duration-300";
+  const cardStyles =
+    "rounded-3xl border border-gray-100 bg-white dark:bg-slate-900 dark:border-slate-800 shadow-sm transition-all duration-300";
 
   if (!isAuthenticated) {
     return (
@@ -46,7 +46,9 @@ export function StatCards() {
                 <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500">
                   Войдите, чтобы увидеть
                 </p>
-                <p className="mt-1 text-2xl font-black text-gray-500 dark:text-slate-400">--</p>
+                <p className="mt-1 text-2xl font-black text-gray-500 dark:text-slate-400">
+                  --
+                </p>
               </div>
             </CardContent>
           </Card>
