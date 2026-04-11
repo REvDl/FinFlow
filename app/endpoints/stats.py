@@ -32,14 +32,6 @@ async def get_stats(request:Request,
 	return result
 
 
-# session: AsyncSession,
-# user_id: int,
-# date: datetime.date,
-# transaction_type: str,
-# redis_client,
-# http_client,
-# to_currency: str = "UAH"
-
 
 
 @stats.get("/by_day", status_code=status.HTTP_200_OK, response_model=list[DayTransactionSchema])
