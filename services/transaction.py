@@ -286,3 +286,53 @@ class TransactionDAO:
             "min_data":min_data,
             "max_data":max_data
         }
+
+
+    @staticmethod
+    async def get_chart_date(session: AsyncSession,
+                             user_id: int,
+                             calendar: Calendar,
+                             redis_client,
+                             http_client,
+                             to_currency: str = "UAH"
+                             ):
+        rates = await get_nbu_rates(redis_client, http_client)
+        target_rate = rates.get(to_currency.upper(), Decimal("1"))
+        transaction_currency_cases = []
+        for currency, rate in rates.items():
+            multiplier = rate / target_rate
+            transaction_currency_cases.append(
+                (TransactionOrm.currency == currency, TransactionOrm.price * multiplier)
+            )
+        converted_price = case(*transaction_currency_cases, else_=TransactionOrm.price / target_rate)
+        query = (
+            select(
+                cast(TransactionOrm.created_at, Date).label("date"),
+                TransactionOrm.transaction_type,
+                func.sum(converted_price).label("total_amount")
+            )
+            .where(TransactionOrm.user_id == user_id)
+            .group_by("date", TransactionOrm.transaction_type)
+            .order_by("date")
+        )
+
+        query = TransactionDAO.date_calendar(query, calendar)
+        result = await session.execute(query)
+        rows = result.all()
+
+        stats = {(row.date, row.transaction_type): row.total_amount for row in rows}
+        final_stats = []
+        start_dt = calendar.start or datetime.date.today().replace(day=1)
+        end_dt = calendar.end or datetime.date.today()
+        current_dt = start_dt
+
+        while current_dt <= end_dt:
+            for t_type in ['income', 'spending']:
+                amount = Decimal(stats.get((current_dt, t_type), 0))
+                final_stats.append({
+                    "date": current_dt,
+                    "transaction_type":t_type,
+                    "total_amount": amount
+                })
+            current_dt += datetime.timedelta(days=1)
+        return final_stats
