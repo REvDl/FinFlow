@@ -109,7 +109,8 @@ async function fetchAPI<T>(
   return response.json();
 }
 
-// --- ИСПРАВЛЕННАЯ ФУНКЦИЯ ДЛЯ СРЕДНЕГО ЗНАЧЕНИЯ ---
+// --- ВСПОМОГАТЕЛЬНЫЕ API ---
+
 export const getAverageStats = async (params: { start: any; end: any; to_currency: string }) => {
   const toISODate = (date: any) => {
     if (!date) return undefined;
@@ -215,42 +216,41 @@ export const transactionsAPI = {
   getExtremeDates: () =>
     fetchAPI<{ min_data: string; max_data: string }>("/transaction/all_time"),
 
-  // МЕТОД ДЛЯ ЭКСПОРТА JSON
   exportTransactions: async () => {
     const url = `${API_BASE}/data/export`;
-    const response = await fetch(url, {
-      method: "GET",
-      credentials: "include",
-    });
-
+    const response = await fetch(url, { method: "GET", credentials: "include" });
     if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error.detail || `Export Error: ${response.status}`);
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || `Export Error: ${response.status}`);
     }
-
     return response.blob();
   },
 
-  // МЕТОД ДЛЯ ИМПОРТА JSON
   importTransactions: async (file: File) => {
     const url = `${API_BASE}/data/import`;
     const formData = new FormData();
     formData.append("file", file);
-
-    const response = await fetch(url, {
-      method: "POST",
-      body: formData,
-      credentials: "include",
-      // Content-Type не задаем, браузер сам выставит multipart/form-data
-    });
-
+    const response = await fetch(url, { method: "POST", body: formData, credentials: "include" });
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
       throw new Error(error.detail || `Import Error: ${response.status}`);
     }
-
     return response.json();
   },
+};
+
+export const statsAPI = {
+  getDiagram: (params: {
+    start?: string;
+    end?: string;
+    to_currency: string;
+  }) => fetchAPI<ChartPoint[]>("/stats/diagram", { params }),
+
+  getByDay: (params: {
+    date: string;
+    transaction_type: "income" | "spending";
+    to_currency: string;
+  }) => fetchAPI<DayTransaction[]>("/stats/by_day", { params }),
 };
 
 // --- ТИПЫ ДАННЫХ ---
@@ -312,6 +312,22 @@ export interface CategoryBreakdown {
   category_id: number;
   category_name: string;
   amount: number;
+}
+
+export interface ChartPoint {
+  date: string;
+  transaction_type: "income" | "spending";
+  total_amount: number; // Decimal с бэка будет числом
+}
+
+export interface DayTransaction {
+  id: number;
+  name: string;
+  category: string;
+  amount: number;
+  currency: string;
+  converted_amount: number;
+  display_currency: string;
 }
 
 export interface TotalResponse {
