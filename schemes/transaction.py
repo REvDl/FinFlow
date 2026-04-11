@@ -3,7 +3,6 @@ from decimal import Decimal
 from typing import Any, Literal
 from pydantic import BaseModel, Field, condecimal, field_validator, model_validator, ConfigDict
 from dateutil import parser
-
 from core.exceptions import DataError
 from database.models import TransactionType
 

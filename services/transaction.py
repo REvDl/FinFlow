@@ -323,10 +323,11 @@ class TransactionDAO:
 		start_dt = calendar.start or datetime.date.today().replace(day=1)
 		end_dt = calendar.end or datetime.date.today()
 		current_dt = start_dt
-
+		PRECISION = Decimal("0.01")
 		while current_dt <= end_dt:
 			for t_type in ['income', 'spending']:
-				amount = Decimal(stats.get((current_dt, t_type), 0))
+				raw_amount = Decimal(stats.get((current_dt, t_type), 0))
+				amount = raw_amount.quantize(PRECISION)
 				final_stats.append({
 					"date": current_dt,
 					"transaction_type": t_type,
