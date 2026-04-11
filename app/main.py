@@ -4,10 +4,10 @@ import httpx
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from starlette.responses import JSONResponse
-
 from app.endpoints.data import data
 from app.endpoints.auth import auth_route
 from app.endpoints.category import category_route
+from app.endpoints.stats import stats
 from app.endpoints.transaction import transaction_route
 from app.endpoints.user import user_route
 from config import settings
@@ -91,3 +91,4 @@ app.include_router(user_route)
 app.include_router(transaction_route)
 app.include_router(category_route)
 app.include_router(data)
+app.include_router(stats)
