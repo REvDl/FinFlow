@@ -79,7 +79,7 @@ class CurrencyModel(BaseModel):
 class TransactionCreate(BaseModel):
     name: str = Field(..., max_length=50)
     description: str | None = Field(default=None, max_length=250)
-    price: condecimal(gt=0, max_digits=20, decimal_places=2)
+    price: condecimal(gt=0, max_digits=10, decimal_places=2)
     category_id: int
     created_at: datetime.datetime | None = Field(default=None)
     currency: str | None
@@ -111,7 +111,7 @@ class TransactionResponse(BaseModel):
 class TransactionUpdate(BaseModel):
     name: str | None = Field(default=None, max_length=50)
     description: str | None = Field(default=None, max_length=250)
-    price: condecimal(gt=0, max_digits=20, decimal_places=2) | None = None
+    price: condecimal(gt=0, max_digits=10, decimal_places=2) | None = None
     category_id: int | None = None
     created_at: datetime.datetime | None = None
     currency: str | None = None
