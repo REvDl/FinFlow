@@ -2,18 +2,23 @@ import { Header } from "./Header";
 import { StatCards } from "./StatCards";
 import { Sidebar } from "./Sidebar";
 import { TransactionList } from "./TransactionList";
+import { DashboardCharts } from "./DashboardCharts";
 
 export function Dashboard() {
   return (
-    // Добавили dark:bg-slate-950 и плавный переход transition-colors
     <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-slate-950 transition-colors duration-300">
       <Header />
       <main className="flex flex-1 flex-col gap-6 p-4 lg:p-6">
         <StatCards />
+
+        {/* Верхняя рабочая зона */}
         <div className="flex flex-1 flex-col gap-6 lg:flex-row">
           <Sidebar />
           <TransactionList />
         </div>
+
+        {/* Графики теперь ВНИЗУ всей страницы */}
+        <DashboardCharts />
       </main>
     </div>
   );
