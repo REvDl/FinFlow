@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     REDIS_HOST:str
     REDIS_PORT:int
     TEST_DB_NAME:str
+    TOKEN_TG: str
+    REVDI_ID: int
 
     @property
     def DATABASE_URL_asyncpg(self):
