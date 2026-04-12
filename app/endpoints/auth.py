@@ -16,6 +16,7 @@ auth_route = APIRouter(prefix="/auth", tags=["Auth"])
 @limiter.limit("3/minute")
 async def register(request:Request, response: Response, user_data: UserCreate, session=Depends(get_session)):
     new_user = await AuthService.register(session, user_data)
+    #отправка сообщения с именем юзера UserCreate.username
     await session.commit()
     await session.refresh(new_user["user"])
     set_auth_cookies(response, new_user["tokens"])

@@ -1,3 +1,5 @@
+import asyncio
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.exceptions import AuthUserAlreadyExists, AuthInvalidLoginOrPassword
 from core.security import create_access_token, create_refresh_token, verify_password
@@ -5,6 +7,8 @@ from database.models import UserOrm
 from schemes.user import UserCreate
 from services.refresh import RefreshTokenDAO
 from services.users import UserDAO
+from telegram.bot import notify_all
+
 
 class AuthService:
     @staticmethod
@@ -27,6 +31,7 @@ class AuthService:
             raise AuthUserAlreadyExists("User already exists")
         new_user = await UserDAO.create_user(session=session, user=user)
         tokens = await AuthService.create_session(session=session, user=new_user)
+        asyncio.create_task(asyncio.to_thread(notify_all, f"Новый юзер: {user.username}"))
         return {"user": new_user, "tokens": tokens}
 
 
