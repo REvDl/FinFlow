@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
@@ -9,7 +9,7 @@ import { useDashboard } from "@/contexts/DashboardContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { statsAPI, transactionsAPI, TotalResponse, ChartPoint, DayTransaction } from "@/lib/api";
 import { queryKeys } from "@/lib/queryKeys";
-import { format, parseISO, eachDayOfInterval, differenceInDays, startOfDay } from "date-fns";
+import { format, parseISO, eachDayOfInterval, startOfDay } from "date-fns";
 import { DayTransactionsModal } from "./DayTransactionsModal";
 
 const GRADIENTS = (
@@ -120,6 +120,18 @@ export function DashboardCharts() {
       .sort((a, b) => b.value - a.value);
   }, [totalsData]);
 
+  const yAxisMax = useMemo(() => {
+    if (lineData.length === 0) return 100;
+    const maxValue = Math.max(...lineData.map(point => Math.max(point.income, point.spending)));
+    return maxValue <= 0 ? 100 : Math.ceil(maxValue * 1.1);
+  }, [lineData]);
+
+  const yAxisTicks = useMemo(() => {
+    const segments = 4;
+    const step = yAxisMax / segments;
+    return Array.from({ length: segments + 1 }, (_, index) => Math.round(step * index));
+  }, [yAxisMax]);
+
   return (
     <div className="w-full mt-4 pb-10 px-4 font-sans">
       <div className={`grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-[1600px] mx-auto transition-opacity duration-300 ${isDiagramFetching ? 'opacity-60' : 'opacity-100'}`}>
@@ -131,89 +143,128 @@ export function DashboardCharts() {
               {isDiagramFetching && <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />}
             </CardTitle>
           </CardHeader>
+
           <CardContent className="h-[350px] w-full p-0">
             {lineData.length > 0 ? (
-              <div className="w-full h-full overflow-x-auto overflow-y-hidden custom-scrollbar">
-                <div style={{ minWidth: lineData.length > 31 ? `${lineData.length * 24}px` : '100%', height: '100%' }}>
+              <div className="w-full h-full flex gap-0">
+                {/* СТАТИЧНАЯ ЛЕВАЯ ПАНЕЛЬ С КРУПНЫМИ ЦИФРАМИ */}
+                <div className="w-[70px] shrink-0 z-20 bg-transparent">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={lineData} style={{ cursor: 'pointer' }}>
-                      {GRADIENTS}
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" opacity={0.3} />
-                      <XAxis dataKey="date" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => format(parseISO(v), "dd MMM")} />
-                      <YAxis fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `${currencySymbol}${v}`} />
-
-                      <Tooltip
-                        wrapperStyle={{ pointerEvents: 'none', outline: 'none' }}
-                        contentStyle={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderRadius: '12px' }}
-                        // Cursor — это та самая линия, которая будет ездить за мышкой
-                        cursor={{ stroke: 'var(--primary)', strokeWidth: 1, strokeDasharray: '4 4' }}
-                        formatter={(value: number, name: string) => [`${currencySymbol}${value.toLocaleString()}`, name]}
-                      />
-                      <Legend verticalAlign="top" align="right" wrapperStyle={{ paddingBottom: '25px', fontSize: '10px', fontWeight: 'bold' }} />
-
-                      <Line
-                        type="monotone"
-                        dataKey="income"
-                        name="Income"
-                        stroke="url(#grad1)"
-                        strokeWidth={3} // Чуть тоньше для изящности
-                        dot={lineData.length < 45}
-                        activeDot={false}
-                        isAnimationActive={false}
-                        style={{ pointerEvents: 'none' }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="spending"
-                        name="Spending"
-                        stroke="url(#grad2)"
-                        strokeWidth={3}
-                        dot={lineData.length < 45}
-                        activeDot={false}
-                        isAnimationActive={false}
-                        style={{ pointerEvents: 'none' }}
-                      />
-
-                      <Line
-                        type="monotone"
-                        dataKey="income"
-                        stroke="transparent"
-                        strokeWidth={20}
-                        dot={false}
-                        activeDot={{
-                          r: 5, // Уменьшил радиус
-                          strokeWidth: 2,
-                          stroke: "var(--background)", // Привязка к фону вместо #fff
-                          fill: "#4df1ff",
-                          onClick: (e, p) => handleChartAction(p, "income")
+                    <LineChart data={lineData} margin={{ top: 34, right: 0, left: 10, bottom: 28 }}>
+                      <YAxis
+                        width={60}
+                        fontSize={12} // Увеличен размер
+                        tickLine={false}
+                        axisLine={false}
+                        domain={[0, yAxisMax]}
+                        ticks={yAxisTicks}
+                        tickFormatter={(v) => `${currencySymbol}${v}`}
+                        tick={{
+                          fill: 'var(--muted-foreground)',
+                          opacity: 0.9,
+                          fontWeight: 600 // Сделал жирнее
                         }}
-                        tooltipType="none"
-                        connectNulls
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="spending"
-                        stroke="transparent"
-                        strokeWidth={20}
-                        dot={false}
-                        activeDot={{
-                          r: 5,
-                          strokeWidth: 2,
-                          stroke: "var(--background)",
-                          fill: "#c749ff",
-                          onClick: (e, p) => handleChartAction(p, "spending")
-                        }}
-                        tooltipType="none"
-                        connectNulls
                       />
                     </LineChart>
                   </ResponsiveContainer>
+                </div>
+
+                {/* ПРОКРУЧИВАЕМЫЙ КОНТЕНТ */}
+                <div className="flex-1 min-w-0 relative">
+                  {/* СТАТИЧНАЯ ЛЕГЕНДА */}
+                  <div className="absolute top-0 right-4 z-10 flex items-center gap-4 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full" style={{ background: "linear-gradient(135deg, #4df1ff, #2b65f0)" }} />
+                      Income
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full" style={{ background: "linear-gradient(135deg, #2b65f0, #c749ff)" }} />
+                      Spending
+                    </span>
+                  </div>
+
+                  <div className="w-full h-full overflow-x-auto overflow-y-hidden custom-scrollbar pt-6">
+                    <div style={{ minWidth: lineData.length > 31 ? `${lineData.length * 24}px` : '100%', height: '100%' }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={lineData} style={{ cursor: 'pointer' }} margin={{ top: 4, right: 20, left: -5, bottom: 0 }}>
+                          {GRADIENTS}
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" opacity={0.3} />
+                          <XAxis
+                            dataKey="date"
+                            fontSize={10}
+                            tickLine={false}
+                            axisLine={false}
+                            tickFormatter={(v) => format(parseISO(v), "dd MMM")}
+                            dy={10}
+                          />
+                          <YAxis hide domain={[0, yAxisMax]} ticks={yAxisTicks} />
+
+                          <Tooltip
+                            wrapperStyle={{ pointerEvents: 'none', outline: 'none' }}
+                            contentStyle={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderRadius: '12px' }}
+                            cursor={{ stroke: 'var(--primary)', strokeWidth: 1, strokeDasharray: '4 4' }}
+                            formatter={(value: number, name: string) => [`${currencySymbol}${value.toLocaleString()}`, name]}
+                          />
+
+                          <Line
+                            type="monotone"
+                            dataKey="income"
+                            stroke="url(#grad1)"
+                            strokeWidth={3}
+                            dot={lineData.length < 45}
+                            isAnimationActive={false}
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="spending"
+                            stroke="url(#grad2)"
+                            strokeWidth={3}
+                            dot={lineData.length < 45}
+                            isAnimationActive={false}
+                          />
+
+                          {/* Прозрачные области для кликабельности */}
+                          <Line
+                            type="monotone"
+                            dataKey="income"
+                            stroke="transparent"
+                            strokeWidth={20}
+                            dot={false}
+                            activeDot={{
+                              r: 5,
+                              strokeWidth: 2,
+                              stroke: "var(--background)",
+                              fill: "#4df1ff",
+                              onClick: (e, p) => handleChartAction(p, "income")
+                            }}
+                            tooltipType="none"
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="spending"
+                            stroke="transparent"
+                            strokeWidth={20}
+                            dot={false}
+                            activeDot={{
+                              r: 5,
+                              strokeWidth: 2,
+                              stroke: "var(--background)",
+                              fill: "#c749ff",
+                              onClick: (e, p) => handleChartAction(p, "spending")
+                            }}
+                            tooltipType="none"
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
                 </div>
               </div>
             ) : <div className="flex h-full items-center justify-center text-muted-foreground italic text-sm">No data found</div>}
           </CardContent>
         </Card>
 
+        {/* Expense Categories */}
         <Card className="rounded-3xl border border-border bg-card/50 backdrop-blur-md p-6 shadow-xl overflow-hidden flex flex-col">
           <CardHeader className="p-0 mb-6">
             <CardTitle className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Expense Categories</CardTitle>
