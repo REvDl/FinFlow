@@ -130,7 +130,7 @@
   }
 }
 .custom-scrollbar::-webkit-scrollbar {
-  height: 4px;
+  height: 9px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: #e2e8f0;
