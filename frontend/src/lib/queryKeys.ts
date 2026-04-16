@@ -23,8 +23,13 @@ export function invalidateAfterTransactionChange(queryClient: QueryClient) {
 }
 
 /** После изменения списка категорий или сумм по ним. */
-export function invalidateAfterCategoryChange(queryClient: QueryClient) {
-  queryClient.invalidateQueries({ queryKey: queryKeys.categories });
+export function invalidateAfterCategoryChange(
+  queryClient: QueryClient,
+  options?: { skipCategories?: boolean }
+) {
+  if (!options?.skipCategories) {
+    queryClient.invalidateQueries({ queryKey: queryKeys.categories });
+  }
   queryClient.invalidateQueries({ queryKey: ["totals"] });
   queryClient.invalidateQueries({ queryKey: ["transactions", "infinite"] });
 }
