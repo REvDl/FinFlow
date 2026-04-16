@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 import redis.asyncio as redis
 import httpx
@@ -19,6 +20,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from redis.retry import Retry
 from redis.backoff import NoBackoff
 
+from script import nbu_update
 
 no_retry = Retry(backoff=NoBackoff(), retries=0)
 
@@ -36,6 +38,7 @@ async def lifespan(app: FastAPI):
         socket_connect_timeout=5.0,
         retry=no_retry
     )
+    asyncio.create_task(nbu_update(app.state.redis, app.state.http_client))
     try:
         await app.state.redis.ping()
         print("Redis connected")
