@@ -106,7 +106,15 @@ async function fetchAPI<T>(
     throw new Error(error.detail || `API Error: ${response.status}`);
   }
 
-  return response.json();
+  // DELETE и часть POST часто отвечают 204 или пустым телом — response.json() падает.
+  if (response.status === 204 || response.status === 205) {
+    return undefined as T;
+  }
+  const text = await response.text();
+  if (!text.trim()) {
+    return undefined as T;
+  }
+  return JSON.parse(text) as T;
 }
 
 // --- ВСПОМОГАТЕЛЬНЫЕ API ---
