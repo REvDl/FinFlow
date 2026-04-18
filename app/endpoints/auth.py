@@ -63,12 +63,21 @@ async def refresh(response: Response,
 
 
 @auth_route.post("/logout")
-async def logout(response: Response):
-    response.delete_cookie(
-        key="access_token",
-        httponly=True,
-        samesite="lax",
-        secure=False,
-        path="/",
-    )
+async def logout(response: Response,
+                 refresh_token: str = Cookie(None),
+                 session=Depends(get_session)):
+    cookies_to_delete = ["access_token", "refresh_token"]
+    for token in cookies_to_delete:
+        response.delete_cookie(
+            key=token,
+            httponly=True,
+            samesite="lax",
+            secure=False,
+            path="/",
+        )
+    if refresh_token:
+        token = await RefreshTokenDAO.delete_token(
+            session=session,
+            token=refresh_token)
+        await session.commit()
     return {"message": "Successfully logged out"}
