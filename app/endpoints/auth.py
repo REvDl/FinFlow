@@ -1,5 +1,5 @@
 import datetime
-from fastapi import APIRouter, Depends, status, Response
+from fastapi import APIRouter, Depends, status, Response, Cookie
 from app.utils import set_auth_cookies
 from core.dependencies import get_session
 from core.exceptions import TokenHasExpired, UserNotFound
@@ -41,7 +41,7 @@ async def login(request:Request, response: Response, user_data: UserLogin, sessi
 
 @auth_route.post("/refresh", status_code=status.HTTP_200_OK)
 async def refresh(response: Response,
-                  refresh_token: str,
+                  refresh_token: str = Cookie(None),
                   session=Depends(get_session)):
     token = await RefreshTokenDAO.get_token(
         session=session,
