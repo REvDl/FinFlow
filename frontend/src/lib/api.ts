@@ -73,32 +73,36 @@ async function fetchAPI<T>(
     }
 
     isRefreshing = true;
-    const refreshToken = getStoredRefreshToken();
-    if (refreshToken) {
-      try {
-        const refreshUrl = `${API_BASE}/auth/refresh?refresh_token=${encodeURIComponent(refreshToken)}`;
-        const refreshRes = await fetch(refreshUrl, {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-        });
+    try {
+      // Бэкенд читает refresh_token из cookie, поэтому ничего в query/body не передаем.
+      const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
 
-        const refreshData = await refreshRes.json().catch(() => ({}));
+      const refreshData = await refreshRes.json().catch(() => ({}));
 
-        if (refreshRes.ok && refreshData.tokens) {
+      if (refreshRes.ok) {
+        if (refreshData?.tokens?.refresh_token) {
           setStoredRefreshToken(refreshData.tokens.refresh_token);
-          isRefreshing = false;
-          processQueue(null, refreshData.tokens.access_token);
-          return fetchAPI<T>(endpoint, { ...options, _retry: true });
         }
-      } catch (err) {
         isRefreshing = false;
-        processQueue(err, null);
-        setStoredRefreshToken(null);
-        throw err;
+        processQueue(null, refreshData?.tokens?.access_token ?? null);
+        return fetchAPI<T>(endpoint, { ...options, _retry: true });
       }
+
+      const refreshError = new Error(refreshData?.detail || "Unable to refresh session");
+      isRefreshing = false;
+      processQueue(refreshError, null);
+      setStoredRefreshToken(null);
+      throw refreshError;
+    } catch (err) {
+      isRefreshing = false;
+      processQueue(err, null);
+      setStoredRefreshToken(null);
+      throw err;
     }
-    isRefreshing = false;
   }
 
   if (!response.ok) {
