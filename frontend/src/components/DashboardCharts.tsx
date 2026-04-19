@@ -235,7 +235,7 @@ export function DashboardCharts() {
                               strokeWidth: 2,
                               stroke: "var(--background)",
                               fill: "#4df1ff",
-                              onClick: (e, p) => handleChartAction(p, "income")
+                              onClick: (_e, p) => handleChartAction(p, "income")
                             }}
                             tooltipType="none"
                           />
@@ -250,7 +250,7 @@ export function DashboardCharts() {
                               strokeWidth: 2,
                               stroke: "var(--background)",
                               fill: "#c749ff",
-                              onClick: (e, p) => handleChartAction(p, "spending")
+                              onClick: (_e, p) => handleChartAction(p, "spending")
                             }}
                             tooltipType="none"
                           />
