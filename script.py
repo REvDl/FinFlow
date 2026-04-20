@@ -13,7 +13,7 @@ USED_CURRENCIES = {"UAH", "USD", "EUR", "CZK", "RUB"}
 async def nbu_update(redis_client: redis.Redis, http_client: httpx.AsyncClient):
     """парсит валюту банка"""
     try:
-            print("✅PARSER: NBU UPDATE START")
+        print("✅PARSER: NBU UPDATE START")
         response = await http_client.get(settings.URL_API_BANK, timeout=5)
         if response.status_code == 200:
             data = response.json()

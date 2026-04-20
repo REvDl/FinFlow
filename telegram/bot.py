@@ -1,6 +1,5 @@
-import urllib.parse
-import urllib.request
 from datetime import datetime
+import httpx
 import pytz
 from config import settings
 
@@ -13,21 +12,25 @@ def get_now_str():
 
 
 
-def send_telegram_msg(token, chat_id, text):
+async def send_telegram_msg(client: httpx.AsyncClient, text):
 	full_message = f"[{get_now_str()}] {text}"
-	safe_text = urllib.parse.quote(full_message)
-	url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={safe_text}"
+	url = f"https://api.telegram.org/bot{settings.TOKEN_TG}/sendMessage"
+	params = {
+		"chat_id": settings.REVDI_ID,
+		"text":full_message,
+		"parse_mode": "Markdown"
+	}
 	try:
-		with urllib.request.urlopen(url, timeout=10) as response:
-			return response.read().decode('utf-8')
+		response = await client.get(url, params=params, timeout=10.0)
+		return response.text
 	except Exception as e:
 		print(f">>> [TG ERROR] Failed to send message: {e}", flush=True)
 		return None
 
 
-def notify_all(message: str):
+async def notify_all(client: httpx.AsyncClient, message: str):
 	print(message, flush=True)
 	try:
-		send_telegram_msg(settings.TOKEN_TG, settings.REVDI_ID, message)
+		await send_telegram_msg(client, message)
 	except Exception as e:
 		print(f">>> [TG ERROR] {e}")
