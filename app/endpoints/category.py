@@ -6,7 +6,7 @@ from core.dependencies import get_session, get_current_user
 from core.exceptions import CategoryNotFound
 from schemes.category import CategoryResponse, CategoryCreate, CategoryUpdate
 from schemes.pagination import PaginatedTransactionResponse
-from schemes.transaction import TransactionResponse, Calendar
+from schemes.transaction import TransactionResponse, Calendar, TransactionFilter
 from services.categories import CategoryDAO
 from services.transaction import TransactionDAO
 from limiter.limiter import limiter
@@ -47,6 +47,7 @@ async def get_category_user(
 async def get_category_transactions(
     request:Request,
     category_id: int,
+    transaction: TransactionFilter = Depends(),
     calendar: Calendar = Depends(),
     limit: int = 15,
     cursor_time: Optional[datetime.datetime] = None,
@@ -62,6 +63,7 @@ async def get_category_transactions(
         calendar=calendar,
         limit=limit,
         cursor_time=cursor_time,
+        transaction_type=transaction.type,
         cursor_id=cursor_id
     )
 
