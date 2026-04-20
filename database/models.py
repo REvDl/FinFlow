@@ -83,7 +83,7 @@ class RefreshTokenOrm(Base):
     __tablename__ = "refresh_tokens"
     id: Mapped[intpk]
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
-    token: Mapped[str] = mapped_column(Text, index=True)
+    token: Mapped[str] = mapped_column(Text, index=True, unique=True)
     created_at: Mapped[created_at]
     expire_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True),
