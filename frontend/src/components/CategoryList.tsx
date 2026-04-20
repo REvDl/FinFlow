@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, X, Tag } from "lucide-react";
+import { Plus, X, Tag, Pencil, Check } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,8 @@ export function CategoryList() {
 
   const [newCategory, setNewCategory] = useState("");
   const [isAdding, setIsAdding] = useState(false);
+  const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
+  const [editingCategoryName, setEditingCategoryName] = useState("");
 
   const { data: categories, isLoading } = useQuery({
     queryKey: queryKeys.categories,
@@ -83,6 +85,16 @@ export function CategoryList() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, name }: { id: number; name: string }) =>
+      categoriesAPI.update(id, { name }),
+    onSuccess: async () => {
+      await invalidateAfterCategoryChange(queryClient);
+      setEditingCategoryId(null);
+      setEditingCategoryName("");
+    },
+  });
+
   const categoryAmounts = totals?.categories ?? {};
 
   const sortedCategories = useMemo(() => {
@@ -111,6 +123,28 @@ export function CategoryList() {
 
   const handleDeleteCategory = (id: number) => {
     deleteMutation.mutate(id);
+  };
+
+  const handleStartEditCategory = (id: number, name: string) => {
+    setEditingCategoryId(id);
+    setEditingCategoryName(name);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCategoryId(null);
+    setEditingCategoryName("");
+  };
+
+  const handleSaveEditCategory = async () => {
+    if (!editingCategoryId) return;
+    const normalizedName = editingCategoryName.trim();
+    if (!normalizedName) return;
+
+    try {
+      await updateMutation.mutateAsync({ id: editingCategoryId, name: normalizedName });
+    } catch (err) {
+      console.error("Rename failed:", err);
+    }
   };
 
   if (!isAuthenticated) return null;
@@ -177,11 +211,67 @@ export function CategoryList() {
                     )}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-gray-700 dark:text-slate-200">{category.name}</span>
+                      {editingCategoryId === category.id ? (
+                        <Input
+                          value={editingCategoryName}
+                          onChange={(e) => setEditingCategoryName(e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleSaveEditCategory();
+                            }
+                            if (e.key === "Escape") {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleCancelEdit();
+                            }
+                          }}
+                          className="h-7 w-[65%] text-sm dark:bg-slate-900 dark:border-slate-700"
+                          autoFocus
+                        />
+                      ) : (
+                        <span className="font-bold text-gray-700 dark:text-slate-200">
+                          {category.name}
+                        </span>
+                      )}
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-mono font-bold text-gray-500 dark:text-slate-100">
                           {formatCurrency(amount, currency)}
                         </span>
+                        {editingCategoryId === category.id ? (
+                          <>
+                            <div
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSaveEditCategory();
+                              }}
+                              className="p-1 rounded-md hover:bg-emerald-100 dark:hover:bg-emerald-900/30"
+                            >
+                              <Check className="size-3.5 text-emerald-500" />
+                            </div>
+                            <div
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCancelEdit();
+                              }}
+                              className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-slate-700"
+                            >
+                              <X className="size-3.5 text-gray-400" />
+                            </div>
+                          </>
+                        ) : (
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStartEditCategory(category.id, category.name);
+                            }}
+                            className="p-1 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 rounded-md transition-opacity group-hover:opacity-100 opacity-0"
+                          >
+                            <Pencil className="size-3.5 text-gray-400 hover:text-indigo-500" />
+                          </div>
+                        )}
                         <div
                           onClick={(e) => {
                             e.stopPropagation();

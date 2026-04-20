@@ -180,6 +180,8 @@ export const categoriesAPI = {
   getTransactions: (
     id: number,
     params?: {
+      type?: "all" | "income" | "spending";
+      transaction_type?: "income" | "spending";
       cursor_time?: string;
       cursor_id?: number;
       limit?: number;
