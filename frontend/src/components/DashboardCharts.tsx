@@ -61,7 +61,7 @@ export function DashboardCharts() {
   const endStr = formatDateForAPI(dateRange.end);
 
   const { data: diagramData, isFetching: isDiagramFetching } = useQuery<ChartPoint[]>({
-    queryKey: ["diagram-data", currency, startStr, endStr],
+    queryKey: queryKeys.diagramData(currency, startStr, endStr),
     queryFn: () => statsAPI.getDiagram({ start: startStr, end: endStr, to_currency: currency }),
     enabled: isAuthenticated && !!startStr && !!endStr,
     retry: 1,

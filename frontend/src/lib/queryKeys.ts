@@ -3,6 +3,8 @@ import type { QueryClient } from "@tanstack/react-query";
 export const queryKeys = {
   user: ["user"] as const,
   categories: ["categories"] as const,
+  diagramData: (currency: string, start: string, end: string) =>
+    ["diagram-data", currency, start, end] as const,
   totals: (currency: string, start: string, end: string) =>
     ["totals", currency, start, end] as const,
   averageStats: (currency: string, start: string, end: string) =>
@@ -18,6 +20,7 @@ export const queryKeys = {
 /** После изменения транзакций (создание, правка, удаление, импорт). */
 export function invalidateAfterTransactionChange(queryClient: QueryClient) {
   queryClient.invalidateQueries({ queryKey: ["transactions", "infinite"] });
+  queryClient.invalidateQueries({ queryKey: ["diagram-data"] });
   queryClient.invalidateQueries({ queryKey: ["totals"] });
   queryClient.invalidateQueries({ queryKey: ["averageStats"] });
 }
