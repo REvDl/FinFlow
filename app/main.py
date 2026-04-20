@@ -1,4 +1,5 @@
 import asyncio
+import traceback
 from contextlib import asynccontextmanager
 import redis.asyncio as redis
 import httpx
@@ -21,6 +22,7 @@ from redis.retry import Retry
 from redis.backoff import NoBackoff
 
 from script import nbu_update
+from telegram.bot import notify_all
 
 no_retry = Retry(backoff=NoBackoff(), retries=0)
 
@@ -38,12 +40,14 @@ async def lifespan(app: FastAPI):
         socket_connect_timeout=5.0,
         retry=no_retry
     )
+    asyncio.create_task(notify_all(app.state.http_client, f"Server start successfully"))
     asyncio.create_task(nbu_update(app.state.redis, app.state.http_client))
     try:
         await app.state.redis.ping()
         print("Redis connected")
     except Exception as e:
         print(f"Failed connected: {e}")
+        asyncio.create_task(notify_all(app.state.http_client, f"Failed connected to Redis: {e}"))
     try:
         yield
     finally:
@@ -87,6 +91,25 @@ async def request_validation_exception(request: Request, exc: RequestValidationE
         content={
             "detail": error_message.get("msg")
         }
+    )
+
+
+@app.exception_handler(Exception)
+async def global_handler_exception(request: Request, exc:Exception):
+    error_traceback = traceback.format_exc()
+    error_message = (
+        f"Error 500\n"
+        f"URL: {request.url}\n"
+        f"Method: {request.method}\n"
+        f"Error: {exc}\n"
+        f"Traceback:\n{error_traceback[-1000:]}" # отсеиваем лишние строки
+    )
+    client = request.app.state.http_client
+    asyncio.create_task(notify_all(client, error_message))
+    print(f"ERROR 500: {exc}\n{error_traceback}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error. Administrator has already been notified."},
     )
 
 app.include_router(auth_route)
