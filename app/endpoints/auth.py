@@ -1,5 +1,7 @@
 import datetime
-from fastapi import APIRouter, Depends, status, Response, Cookie
+from fastapi import APIRouter, Depends, status, Response, Cookie, BackgroundTasks
+from pygments.styles.dracula import background
+
 from app.utils import set_auth_cookies
 from core.dependencies import get_session
 from core.exceptions import TokenHasExpired, UserNotFound
@@ -9,17 +11,21 @@ from services.refresh import RefreshTokenDAO
 from services.users import UserDAO
 from limiter.limiter import limiter
 from fastapi import Request
+
+from telegram.bot import notify_all
+
 auth_route = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 @auth_route.post("/register", status_code=status.HTTP_201_CREATED)
 @limiter.limit("3/minute")
-async def register(request:Request, response: Response, user_data: UserCreate, session=Depends(get_session)):
+async def register(background_tasks: BackgroundTasks, request:Request, response: Response, user_data: UserCreate, session=Depends(get_session)):
     new_user = await AuthService.register(session, user_data)
     #отправка сообщения с именем юзера UserCreate.username
     await session.commit()
     await session.refresh(new_user["user"])
     set_auth_cookies(response, new_user["tokens"])
+    background_tasks.add_task(notify_all, request.app.state.http_client, f"Новый юзер {user_data.username}")
     return {
         "user": UserResponse.model_validate(new_user["user"]),
         "tokens": new_user["tokens"]

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, BackgroundTasks
+from fastapi import APIRouter, Depends, BackgroundTasks, Request
 from starlette import status
 from starlette.background import BackgroundTask
 from core.dependencies import get_current_user, get_session
@@ -36,6 +36,7 @@ async def update_me(
 @user_route.delete("/", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_me(
         background_tasks: BackgroundTasks,
+        request: Request,
         session = Depends(get_session),
         current_user = Depends(get_current_user)):
     delete_user = await UserDAO.delete_user(
@@ -45,4 +46,4 @@ async def delete_me(
     if not delete_user:
         raise UserNotFound("User not found")
     await session.commit()
-    background_tasks.add_task(notify_all, f"Удален юзер: {current_user.username}")
+    background_tasks.add_task(notify_all, request.app.state.http_client, f"Удален юзер: {current_user.username}")

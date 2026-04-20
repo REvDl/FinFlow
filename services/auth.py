@@ -31,7 +31,6 @@ class AuthService:
             raise AuthUserAlreadyExists("User already exists")
         new_user = await UserDAO.create_user(session=session, user=user)
         tokens = await AuthService.create_session(session=session, user=new_user)
-        asyncio.create_task(asyncio.to_thread(notify_all, f"Новый юзер: {user.username}"))
         return {"user": new_user, "tokens": tokens}
 
 
