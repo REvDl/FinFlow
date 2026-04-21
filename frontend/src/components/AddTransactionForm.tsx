@@ -111,12 +111,12 @@ export function AddTransactionForm() {
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base dark:text-white">
             <Plus className="size-4" />
-            Новая запись
+            New Entry
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground dark:text-slate-500">
-            Войдите, чтобы добавлять операции
+            Sign in to add transactions
           </p>
         </CardContent>
       </Card>
@@ -128,7 +128,7 @@ export function AddTransactionForm() {
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base dark:text-white">
           <Plus className="size-4" />
-          Новая запись
+          New Entry
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -147,29 +147,29 @@ export function AddTransactionForm() {
                 value="spending"
                 className="flex-1 text-[10px] font-black uppercase tracking-widest"
               >
-                Расход
+                Expense
               </TabsTrigger>
               <TabsTrigger
                 value="income"
                 className="flex-1 text-[10px] font-black uppercase tracking-widest"
               >
-                Доход
+                Income
               </TabsTrigger>
             </TabsList>
           </Tabs>
 
           <div className="flex flex-col gap-1.5">
-            <Label className={labelStyles}>Описание</Label>
+            <Label className={labelStyles}>Description</Label>
             <Input
               className={inputStyles}
-              placeholder="Название операции"
+              placeholder="Transaction name"
               {...form.register("name")}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-2">
             <div className="flex flex-col gap-1.5">
-              <Label className={labelStyles}>Сумма</Label>
+              <Label className={labelStyles}>Amount</Label>
               <Input
                 className={inputStyles}
                 type="number"
@@ -178,7 +178,7 @@ export function AddTransactionForm() {
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label className={labelStyles}>Валюта</Label>
+              <Label className={labelStyles}>Currency</Label>
               <Select
                 value={form.watch("currency")}
                 onValueChange={(v) => form.setValue("currency", v as any)}
@@ -198,13 +198,13 @@ export function AddTransactionForm() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label className={labelStyles}>Категория</Label>
+            <Label className={labelStyles}>Category</Label>
             <Select
               value={String(form.watch("category_id") || "")}
               onValueChange={(v) => form.setValue("category_id", Number(v))}
             >
               <SelectTrigger className={inputStyles}>
-                <SelectValue placeholder="Выбрать категорию" />
+                <SelectValue placeholder="Select a category" />
               </SelectTrigger>
               <SelectContent className="dark:bg-slate-950 dark:border-slate-800">
                 {categories?.map((c) => (
@@ -221,7 +221,7 @@ export function AddTransactionForm() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label className={labelStyles}>Дата</Label>
+            <Label className={labelStyles}>Date</Label>
             <Popover open={isOpen} onOpenChange={setIsOpen}>
               <PopoverTrigger asChild>
                 <Button
@@ -232,7 +232,7 @@ export function AddTransactionForm() {
                   )}
                 >
                   <CalendarIcon className="mr-2 size-4 text-indigo-500" />
-                  {date ? format(date, "dd.MM.yyyy") : "Выберите дату"}
+                  {date ? format(date, "dd.MM.yyyy") : "Select a date"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent
@@ -261,7 +261,7 @@ export function AddTransactionForm() {
               <Spinner />
             ) : (
               <>
-                <Plus className="mr-2 size-4" /> Добавить
+                <Plus className="mr-2 size-4" /> Add
               </>
             )}
           </Button>

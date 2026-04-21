@@ -66,14 +66,14 @@ export function Header() {
       window.URL.revokeObjectURL(url);
 
       toast({
-        title: "Экспорт завершен",
-        description: "Файл с транзакциями успешно сохранен",
+        title: "Export completed",
+        description: "The transactions file was saved successfully",
       });
     } catch (err) {
       toast({
         variant: "destructive",
-        title: "Ошибка экспорта",
-        description: "Не удалось сформировать файл для загрузки",
+        title: "Export error",
+        description: "Failed to generate the file for download",
       });
     } finally {
       setIsExporting(false);
@@ -96,14 +96,14 @@ export function Header() {
       queryClient.invalidateQueries({ queryKey: queryKeys.categories });
 
       toast({
-        title: "Импорт успешно выполнен",
-        description: result.message || "Ваши транзакции загружены",
+        title: "Import completed",
+        description: result.message || "Your transactions were uploaded",
       });
     } catch (err: any) {
       toast({
         variant: "destructive",
-        title: "Ошибка импорта",
-        description: err.message || "Не удалось обработать JSON-файл",
+        title: "Import error",
+        description: err.message || "Failed to process the JSON file",
       });
     } finally {
       setIsImporting(false);
@@ -167,7 +167,7 @@ export function Header() {
               size="icon"
               onClick={handleImportClick}
               disabled={isImporting}
-              title="Импорт транзакций из JSON"
+              title="Import transactions from JSON"
               className={cn(
                 "rounded-lg border border-gray-200 dark:border-slate-800 dark:hover:bg-slate-800 dark:text-white shrink-0 transition-all",
                 isImporting && "opacity-50"
@@ -183,7 +183,7 @@ export function Header() {
               size="icon"
               onClick={handleExport}
               disabled={isExporting}
-              title="Экспорт транзакций в JSON"
+              title="Export transactions to JSON"
               className={cn(
                 "rounded-lg border border-gray-200 dark:border-slate-800 dark:hover:bg-slate-800 dark:text-white shrink-0 transition-all",
                 isExporting && "animate-pulse opacity-50"
@@ -238,7 +238,7 @@ export function Header() {
                   onClick={resetToCurrentMonth}
                 >
                   <RotateCcw className="mr-2 size-3" />
-                  Текущий месяц
+                  Current month
                 </Button>
                 <Button
                   variant="secondary"
@@ -246,7 +246,7 @@ export function Header() {
                   className="flex-1 text-[10px] font-black uppercase tracking-widest transition-all active:scale-[0.95] dark:bg-slate-800 dark:text-white dark:hover:bg-slate-700"
                   onClick={setAllTime}
                 >
-                  За все время
+                  All time
                 </Button>
               </div>
             </PopoverContent>
@@ -283,7 +283,7 @@ export function Header() {
                 className="h-8 rounded-lg border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-900/50 px-2 md:px-3 text-[10px] font-black uppercase tracking-widest text-red-600 hover:bg-red-100 transition-all active:scale-95 shrink-0"
               >
                 <LogOut className="size-4" />
-                <span className="ml-1 hidden sm:inline">Выйти</span>
+                <span className="ml-1 hidden sm:inline">Log out</span>
               </Button>
             </div>
           ) : (
@@ -291,7 +291,7 @@ export function Header() {
               className="shrink-0"
               onClick={() => setShowAuthModal(true)}
             >
-              Войти
+              Sign in
             </Button>
           )}
         </div>

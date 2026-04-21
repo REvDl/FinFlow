@@ -179,7 +179,7 @@ export function DashboardCharts() {
                     </span>
                     <span className="flex items-center gap-1.5">
                       <span className="h-2 w-2 rounded-full" style={{ background: "linear-gradient(135deg, #2b65f0, #c749ff)" }} />
-                      Spending
+                      Expense
                     </span>
                   </div>
 
@@ -203,7 +203,10 @@ export function DashboardCharts() {
                             wrapperStyle={{ pointerEvents: 'none', outline: 'none' }}
                             contentStyle={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderRadius: '12px' }}
                             cursor={{ stroke: 'var(--primary)', strokeWidth: 1, strokeDasharray: '4 4' }}
-                            formatter={(value: number, name: string) => [`${currencySymbol}${value.toLocaleString()}`, name]}
+                            formatter={(value: number, name: string) => [
+                              `${currencySymbol}${value.toLocaleString()}`,
+                              name === "spending" ? "Expense" : name === "income" ? "Income" : name,
+                            ]}
                           />
 
                           <Line

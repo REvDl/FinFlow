@@ -120,11 +120,11 @@ export function TransactionList() {
     return (
       <Card className={cardBaseStyles}>
         <CardHeader className="pb-3">
-          <CardTitle className="dark:text-white">История операций</CardTitle>
+          <CardTitle className="dark:text-white">Transaction History</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex h-64 items-center justify-center text-muted-foreground dark:text-slate-500">
-            Войдите, чтобы увидеть операции
+            Sign in to view transactions
           </div>
         </CardContent>
       </Card>
@@ -136,7 +136,7 @@ export function TransactionList() {
       <Card className={cardBaseStyles}>
         <CardHeader className="flex-row items-center justify-between gap-4 pb-3">
           <CardTitle className="text-[10px] font-black uppercase tracking-widest text-gray-600 dark:text-slate-400">
-            История операций
+            Transaction History
           </CardTitle>
           <Tabs value={transactionFilter} onValueChange={handleFilterChange}>
             <TabsList className="dark:bg-slate-950 dark:border dark:border-slate-800">
@@ -144,19 +144,19 @@ export function TransactionList() {
                 value="all"
                 className="text-[10px] font-black uppercase tracking-widest dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white"
               >
-                Все
+                All
               </TabsTrigger>
               <TabsTrigger
                 value="income"
                 className="text-[10px] font-black uppercase tracking-widest dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white"
               >
-                Доходы
+                Income
               </TabsTrigger>
               <TabsTrigger
                 value="spending"
                 className="text-[10px] font-black uppercase tracking-widest dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white"
               >
-                Расходы
+                Expenses
               </TabsTrigger>
             </TabsList>
           </Tabs>

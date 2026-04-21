@@ -44,7 +44,7 @@ export function StatCards() {
               </div>
               <div>
                 <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500">
-                  Войдите, чтобы увидеть
+                  Sign in to view
                 </p>
                 <p className="mt-1 text-2xl font-black text-gray-500 dark:text-slate-400">
                   --
@@ -73,7 +73,7 @@ export function StatCards() {
 
   const stats = [
     {
-      label: "Текущий баланс",
+      label: "Current balance",
       value: data?.balance ?? 0,
       icon: Wallet,
       color:
@@ -84,14 +84,14 @@ export function StatCards() {
         (data?.balance ?? 0) >= 0 ? "text-success" : "text-destructive",
     },
     {
-      label: "Доходы",
+      label: "Income",
       value: data?.income ?? 0,
       icon: TrendingUp,
       color: "bg-success/10 text-success dark:bg-success/20",
       valueColor: "text-success",
     },
     {
-      label: "Расходы",
+      label: "Expenses",
       value: data?.spending ?? 0,
       icon: TrendingDown,
       color: "bg-destructive/10 text-destructive dark:bg-destructive/20",
@@ -113,7 +113,7 @@ export function StatCards() {
               >
                 <stat.icon
                   className={`size-6 transition-transform duration-300 group-hover:rotate-6 ${
-                    stat.label === "Текущий баланс" &&
+                    stat.label === "Current balance" &&
                     (stat.value ?? 0) < 0 &&
                     "group-hover:-rotate-12"
                   }`}

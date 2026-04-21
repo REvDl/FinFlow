@@ -221,7 +221,7 @@ export function TransactionModal({
           >
             <TabsList className="w-full">
               <TabsTrigger value="spending" className="flex-1">
-                Spending
+                Expense
               </TabsTrigger>
               <TabsTrigger value="income" className="flex-1">
                 Income

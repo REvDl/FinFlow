@@ -155,7 +155,7 @@ export function CategoryList() {
         <CardTitle className="flex items-center justify-between text-base">
           <span className="flex items-center gap-2 dark:text-white text-[12px] font-black uppercase tracking-widest">
             <Tag className="size-4 text-indigo-500" />
-            Категории
+            Categories
           </span>
           {selectedCategoryId && (
             <Button
@@ -164,7 +164,7 @@ export function CategoryList() {
               onClick={() => setSelectedCategoryId(null)}
               className="h-6 px-2 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-indigo-600 dark:text-slate-500 dark:hover:text-indigo-400"
             >
-              Сбросить
+              Reset
             </Button>
           )}
         </CardTitle>
@@ -172,7 +172,7 @@ export function CategoryList() {
       <CardContent className="flex flex-1 flex-col gap-3 pb-4">
         <div className="flex gap-2">
           <Input
-            placeholder="Новая категория"
+            placeholder="New category"
             value={newCategory}
             onChange={(e) => setNewCategory(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleAddCategory()}

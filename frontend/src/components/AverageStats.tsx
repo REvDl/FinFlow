@@ -42,7 +42,7 @@ export function AverageStats() {
           </div>
           <div>
             <p className="text-[9px] font-black uppercase tracking-tighter text-gray-400 dark:text-slate-500">
-              Средний ежедневный расход
+              Average daily expense
             </p>
             <p className="text-base font-black text-red-600 dark:text-red-400">
               {Math.round(data?.average_spending || 0).toLocaleString()}{" "}
@@ -59,7 +59,7 @@ export function AverageStats() {
           </div>
           <div>
             <p className="text-[9px] font-black uppercase tracking-tighter text-gray-400 dark:text-slate-500">
-              Средний ежедневный доход
+              Average daily income
             </p>
             <p className="text-base font-black text-emerald-600 dark:text-emerald-400">
               {Math.round(data?.average_income || 0).toLocaleString()}{" "}
@@ -71,7 +71,7 @@ export function AverageStats() {
 
       <div className="text-right hidden sm:block">
         <p className="text-[10px] font-bold italic text-gray-300 dark:text-slate-700">
-          {data?.days || 0} дн.
+          {data?.days || 0} d.
         </p>
       </div>
     </div>
