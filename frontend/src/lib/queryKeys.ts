@@ -34,5 +34,7 @@ export function invalidateAfterCategoryChange(
     queryClient.invalidateQueries({ queryKey: queryKeys.categories });
   }
   queryClient.invalidateQueries({ queryKey: ["totals"] });
+  queryClient.invalidateQueries({ queryKey: ["diagram-data"] });
+  queryClient.invalidateQueries({ queryKey: ["averageStats"] });
   queryClient.invalidateQueries({ queryKey: ["transactions", "infinite"] });
 }
