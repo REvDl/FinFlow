@@ -122,6 +122,10 @@ export function CategoryList() {
   };
 
   const handleDeleteCategory = (id: number) => {
+    const shouldDelete = window.confirm(
+      "Are you sure you want to delete this category? All transactions linked to this category will also be permanently deleted."
+    );
+    if (!shouldDelete) return;
     deleteMutation.mutate(id);
   };
 
