@@ -13,7 +13,7 @@ USED_CURRENCIES = {"UAH", "USD", "EUR", "CZK", "RUB"}
 async def nbu_update(redis_client: redis.Redis, http_client: httpx.AsyncClient):
     """парсит валюту банка"""
     try:
-        print("✅PARSER: NBU UPDATE START")
+        print("PARSER: NBU UPDATE START")
         response = await http_client.get(settings.URL_API_BANK, timeout=5)
         if response.status_code == 200:
             data = response.json()
@@ -27,7 +27,7 @@ async def nbu_update(redis_client: redis.Redis, http_client: httpx.AsyncClient):
                 json.dumps({k: str(v) for k, v in rates.items()}),
                 ex=settings.CACHE_TTL,
             )
-            print("⭕PARSER: NBU UPDATE FINISHED")
+            print("PARSER: NBU UPDATE FINISHED")
             return rates
 
     except Exception as e:
@@ -58,5 +58,6 @@ async def get_nbu_rates(redis_client: redis.Redis, http_client: httpx.AsyncClien
         "UAH": Decimal("1.0"),
         "USD": Decimal("41.2"),
         "EUR": Decimal("44.5"),
-        "RUB": Decimal("0.57")
+        "CZK": Decimal("2.11"),
+        "RUB": Decimal("0.57"),
     }
