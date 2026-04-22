@@ -30,7 +30,7 @@ import { transactionsAPI, categoriesAPI } from "@/lib/api";
 import { queryKeys, invalidateAfterTransactionChange } from "@/lib/queryKeys";
 import { cn } from "@/lib/utils";
 
-const currencies = ["UAH", "USD", "EUR", "RUB", "CZK"] as const;
+const currencies = ["UAH", "USD", "EUR", "CZK"] as const;
 
 const schema = z.object({
   name: z.string().min(1, "Required"),

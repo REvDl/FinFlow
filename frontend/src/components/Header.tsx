@@ -28,7 +28,7 @@ const currencies: { value: Currency; label: string; symbol: string }[] = [
   { value: "UAH", label: "UAH", symbol: "₴" },
   { value: "USD", label: "USD", symbol: "$" },
   { value: "EUR", label: "EUR", symbol: "€" },
-  { value: "RUB", label: "RUB", symbol: "₽" },
+//   { value: "RUB", label: "RUB", symbol: "₽" },
   { value: "CZK", label: "CZK", symbol: "Kč" },
 ];
 
