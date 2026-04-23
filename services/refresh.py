@@ -10,7 +10,6 @@ class RefreshTokenDAO:
     async def add_token(session: AsyncSession, token: str, user_id:int):
         await session.execute(
             delete(RefreshTokenOrm).where(RefreshTokenOrm.user_id == user_id,
-                                          RefreshTokenOrm.expire_at < datetime.datetime.now(datetime.timezone.utc)
         ))
         new_token = RefreshTokenOrm(token=token,user_id=user_id)
         session.add(new_token)
