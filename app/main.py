@@ -102,7 +102,7 @@ async def global_handler_exception(request: Request, exc:Exception):
         f"URL: {request.url}\n"
         f"Method: {request.method}\n"
         f"Error: {exc}\n"
-        f"Traceback:\n{error_traceback[-1000:]}" # отсеиваем лишние строки
+        f"Traceback:\n{error_traceback[-1000:]}"
     )
     client = request.app.state.http_client
     asyncio.create_task(notify_all(client, error_message))

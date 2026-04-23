@@ -1,8 +1,5 @@
-// @/lib/api.ts
-
 const API_BASE = "/api";
 
-// Храним refresh_token в памяти для продления сессии
 let storedRefreshToken: string | null = null;
 export function setStoredRefreshToken(token: string | null) {
   storedRefreshToken = token;
@@ -11,7 +8,7 @@ export function getStoredRefreshToken(): string | null {
   return storedRefreshToken;
 }
 
-// Переменные для управления очередью запросов при обновлении токена
+// Змінні для черги запитів при оновлені токена
 let isRefreshing = false;
 let failedQueue: any[] = [];
 
@@ -31,7 +28,6 @@ interface FetchOptions extends RequestInit {
   _retry?: boolean;
 }
 
-// --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
 
 async function fetchAPI<T>(
   endpoint: string,
@@ -62,7 +58,6 @@ async function fetchAPI<T>(
     },
   });
 
-  // Логика обновления токена при 401
   if (response.status === 401 && !_retry) {
     if (isRefreshing) {
       return new Promise((resolve, reject) => {
@@ -74,7 +69,6 @@ async function fetchAPI<T>(
 
     isRefreshing = true;
     try {
-      // Бэкенд читает refresh_token из cookie, поэтому ничего в query/body не передаем.
       const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
         method: "POST",
         credentials: "include",
@@ -110,7 +104,6 @@ async function fetchAPI<T>(
     throw new Error(error.detail || `API Error: ${response.status}`);
   }
 
-  // DELETE и часть POST часто отвечают 204 или пустым телом — response.json() падает.
   if (response.status === 204 || response.status === 205) {
     return undefined as T;
   }
@@ -121,7 +114,6 @@ async function fetchAPI<T>(
   return JSON.parse(text) as T;
 }
 
-// --- ВСПОМОГАТЕЛЬНЫЕ API ---
 
 export const getAverageStats = async (params: { start: any; end: any; to_currency: string }) => {
   const toISODate = (date: any) => {
@@ -139,7 +131,6 @@ export const getAverageStats = async (params: { start: any; end: any; to_currenc
   });
 };
 
-// --- API ОБЪЕКТЫ ---
 
 export const authAPI = {
   register: (data: { username: string; password: string }) =>
@@ -267,7 +258,6 @@ export const statsAPI = {
   }) => fetchAPI<DayTransaction[]>("/stats/by_day", { params }),
 };
 
-// --- ТИПЫ ДАННЫХ ---
 
 export interface User {
   id: number;
@@ -331,7 +321,7 @@ export interface CategoryBreakdown {
 export interface ChartPoint {
   date: string;
   transaction_type: "income" | "spending";
-  total_amount: number; // Decimal с бэка будет числом
+  total_amount: number;
 }
 
 export interface DayTransaction {

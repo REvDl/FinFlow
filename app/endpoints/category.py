@@ -59,7 +59,7 @@ async def get_category_transactions(
     return await TransactionDAO.read_transaction_all(
         session=session,
         user_id=current_user.id,
-        category_id=category_id, # Фильтр по категории
+        category_id=category_id,
         calendar=calendar,
         limit=limit,
         cursor_time=cursor_time,

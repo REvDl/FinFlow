@@ -37,7 +37,6 @@ const buttonVariants = cva(
   }
 );
 
-// Оборачиваем в forwardRef, чтобы прокинуть ref в Comp
 const Button = React.forwardRef<
   HTMLButtonElement,
   React.ComponentProps<"button"> &
@@ -50,7 +49,7 @@ const Button = React.forwardRef<
   return (
     <Comp
       data-slot="button"
-      ref={ref} // Это то, чего не хватало для календаря
+      ref={ref}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     />

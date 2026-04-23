@@ -3,8 +3,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"; // Теперь путь правильный
-import { ScrollArea } from "@/components/ui/scroll-area"; // Теперь путь правильный
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { DayTransaction } from "@/lib/api";
 
 interface Props {

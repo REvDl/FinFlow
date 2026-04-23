@@ -10,14 +10,10 @@ export function Dashboard() {
       <Header />
       <main className="flex flex-1 flex-col gap-6 p-4 lg:p-6">
         <StatCards />
-
-        {/* Верхняя рабочая зона */}
         <div className="flex flex-1 flex-col gap-6 lg:flex-row">
           <Sidebar />
           <TransactionList />
         </div>
-
-        {/* Графики теперь ВНИЗУ всей страницы */}
         <DashboardCharts />
       </main>
     </div>

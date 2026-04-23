@@ -82,7 +82,6 @@ async def all_time(session=Depends(get_session),
 
 
 
-# ---------- COLLECTION ----------
 
 @transaction_route.post("/", response_model=TransactionResponse, status_code=status.HTTP_201_CREATED)
 @limiter.limit("100/minute")
@@ -140,7 +139,6 @@ async def delete_all_spending(session=Depends(get_session),
     await session.commit()
 
 
-# ---------- ITEM ----------
 
 @transaction_route.get("/{spending_id}", response_model=TransactionResponse, status_code=status.HTTP_200_OK)
 async def get_spending(

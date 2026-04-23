@@ -6,12 +6,12 @@ from config import settings
 import json
 
 
-#Валюты которые нужны, чтоб не брать все курсы из NBU
-USED_CURRENCIES = {"UAH", "USD", "EUR", "CZK", "RUB"}
+#Валюти які потрібні, щоб не брати усі курси з NBU
+USED_CURRENCIES = {"UAH", "USD", "EUR", "CZK"}
 
 
 async def nbu_update(redis_client: redis.Redis, http_client: httpx.AsyncClient):
-    """парсит валюту банка"""
+    """парсить валюту банку"""
     try:
         print("PARSER: NBU UPDATE START")
         response = await http_client.get(settings.URL_API_BANK, timeout=5)
@@ -35,8 +35,8 @@ async def nbu_update(redis_client: redis.Redis, http_client: httpx.AsyncClient):
 
 
 
-#Создаем глобальный флаг, чтоб если кэша нет, то 3 одновременных запроса не делали 3 http запроса к банку, проще говоря
-#Проблема Race Condition
+# Створюємо глобальний прапор, щоб якщо кешу немає, то 3 одночасні запити не робили 3 http-запити до банку, простіше кажучи
+# Проблема Race Condition
 _update_nbu_ = None
 
 

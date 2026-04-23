@@ -22,7 +22,7 @@ import { transactionsAPI } from "@/lib/api";
 import { invalidateAfterTransactionChange, queryKeys } from "@/lib/queryKeys";
 import { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
-import { useToast } from "@/components/ui/use-toast"; // ИМПОРТ ХУКА
+import { useToast } from "@/components/ui/use-toast";
 
 const currencies: { value: Currency; label: string; symbol: string }[] = [
   { value: "UAH", label: "UAH", symbol: "₴" },
@@ -36,7 +36,7 @@ export function Header() {
   const { user, logout, setShowAuthModal } = useAuth();
   const queryClient = useQueryClient();
   const { currency, setCurrency, dateRange, setDateRange, setAllTime } = useDashboard();
-  const { toast } = useToast(); // ИНИЦИАЛИЗАЦИЯ
+  const { toast } = useToast();
 
   const [isDark, setIsDark] = React.useState(false);
   const [isExporting, setIsExporting] = React.useState(false);
@@ -49,7 +49,6 @@ export function Header() {
     setIsDark(isDarkMode);
   }, []);
 
-  // ЛОГИКА ЭКСПОРТА С TOAST
   const handleExport = async () => {
     if (isExporting) return;
     setIsExporting(true);
@@ -84,7 +83,6 @@ export function Header() {
     fileInputRef.current?.click();
   };
 
-  // ЛОГИКА ИМПОРТА С TOAST
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;

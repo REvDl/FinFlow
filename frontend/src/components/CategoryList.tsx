@@ -79,8 +79,6 @@ export function CategoryList() {
       if (selectedCategoryId === id) {
         setSelectedCategoryId(null);
       }
-      // Не инвалидируем список категорий: оптимистичный кэш уже верен, повторный GET
-      // может вернуть устаревшие данные и дать визуальный «откат» строки.
       invalidateAfterCategoryChange(queryClient, { skipCategories: true });
     },
   });

@@ -17,7 +17,6 @@ export const queryKeys = {
   ) => ["transactions", "infinite", filter, categoryId, start, end] as const,
 } as const;
 
-/** После изменения транзакций (создание, правка, удаление, импорт). */
 export function invalidateAfterTransactionChange(queryClient: QueryClient) {
   queryClient.invalidateQueries({ queryKey: ["transactions", "infinite"] });
   queryClient.invalidateQueries({ queryKey: ["diagram-data"] });
@@ -25,7 +24,6 @@ export function invalidateAfterTransactionChange(queryClient: QueryClient) {
   queryClient.invalidateQueries({ queryKey: ["averageStats"] });
 }
 
-/** После изменения списка категорий или сумм по ним. */
 export function invalidateAfterCategoryChange(
   queryClient: QueryClient,
   options?: { skipCategories?: boolean }

@@ -1,7 +1,5 @@
 import datetime
 from fastapi import APIRouter, Depends, status, Response, Cookie, BackgroundTasks
-from pygments.styles.dracula import background
-
 from app.utils import set_auth_cookies
 from core.dependencies import get_session
 from core.exceptions import TokenHasExpired, UserNotFound
@@ -21,7 +19,6 @@ auth_route = APIRouter(prefix="/auth", tags=["Auth"])
 @limiter.limit("3/minute")
 async def register(background_tasks: BackgroundTasks, request:Request, response: Response, user_data: UserCreate, session=Depends(get_session)):
     new_user = await AuthService.register(session, user_data)
-    #отправка сообщения с именем юзера UserCreate.username
     await session.commit()
     await session.refresh(new_user["user"])
     set_auth_cookies(response, new_user["tokens"])

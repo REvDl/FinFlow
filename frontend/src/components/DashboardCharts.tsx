@@ -147,13 +147,12 @@ export function DashboardCharts() {
           <CardContent className="h-[350px] w-full p-0">
             {lineData.length > 0 ? (
               <div className="w-full h-full flex gap-0">
-                {/* СТАТИЧНАЯ ЛЕВАЯ ПАНЕЛЬ С КРУПНЫМИ ЦИФРАМИ */}
                 <div className="w-[70px] shrink-0 z-20 bg-transparent">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={lineData} margin={{ top: 34, right: 0, left: 10, bottom: 28 }}>
                       <YAxis
                         width={60}
-                        fontSize={12} // Увеличен размер
+                        fontSize={12}
                         tickLine={false}
                         axisLine={false}
                         domain={[0, yAxisMax]}
@@ -169,9 +168,7 @@ export function DashboardCharts() {
                   </ResponsiveContainer>
                 </div>
 
-                {/* ПРОКРУЧИВАЕМЫЙ КОНТЕНТ */}
                 <div className="flex-1 min-w-0 relative">
-                  {/* СТАТИЧНАЯ ЛЕГЕНДА */}
                   <div className="absolute top-0 right-4 z-10 flex items-center gap-4 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
                     <span className="flex items-center gap-1.5">
                       <span className="h-2 w-2 rounded-full" style={{ background: "linear-gradient(135deg, #4df1ff, #2b65f0)" }} />
@@ -225,8 +222,6 @@ export function DashboardCharts() {
                             dot={lineData.length < 45}
                             isAnimationActive={false}
                           />
-
-                          {/* Прозрачные области для кликабельности */}
                           <Line
                             type="monotone"
                             dataKey="income"
