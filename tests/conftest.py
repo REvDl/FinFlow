@@ -17,7 +17,6 @@ from tests.integration.test_transactions import TRANSACTION
 from tests.integration.test_user import TEST_USER
 import fakeredis
 from unittest.mock import patch
-# Глобальный флаг, чтобы не пересоздавать таблицы для каждого теста
 _tables_initialized = False
 
 
@@ -56,7 +55,6 @@ async def async_engine():
             poolclass=NullPool
         )
 
-    # Таблицы тоже только один раз
     if not _tables_initialized:
         async with _shared_engine.begin() as conn:
             await conn.run_sync(Base.metadata.drop_all)
@@ -73,9 +71,14 @@ async def async_engine():
 async def session(async_engine):
     async with async_engine.connect() as connection:
         transaction = await connection.begin()
-        async with AsyncSession(connection, expire_on_commit=False) as session:
-            yield session
-            await transaction.rollback()
+        async_session = AsyncSession(
+            bind=connection,
+            expire_on_commit=False,
+            join_transaction_mode="create_savepoint"
+        )
+        yield async_session
+        await async_session.close()
+        await transaction.rollback()
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -89,10 +92,10 @@ async def client(session):
 
 @pytest_asyncio.fixture(scope="function")
 async def authorized_user(client, disable_limiter_properly):
-    await client.post("/auth/register", json=TEST_USER)
-    login_res = await client.post("/auth/login", json=TEST_USER)
-
-    data = login_res.json()
+    resp = await client.post("/auth/register", json=TEST_USER)
+    if resp.status_code == 409:
+        resp = await client.post("/auth/login", json=TEST_USER)
+    data = resp.json()
     token = data["tokens"]["access_token"]
     client.headers.update({"Authorization": f"Bearer {token}"})
     client.user_data = data["user"]
