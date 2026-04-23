@@ -72,7 +72,8 @@ class TestRead:
 
     async def test_read_transactions_pagination_success(self, authorized_user, create_multiple_transaction):
         limit = 3
-        page_one = await authorized_user.get(f"/transaction/?limit={limit}")
+        params = {"limit": limit, "start": "2026-02-01", "end": "2026-03-01"}
+        page_one = await authorized_user.get(f"/transaction/", params=params)
         assert page_one.status_code == 200
         data_one = page_one.json()
         items_one = data_one["items"]
@@ -83,7 +84,9 @@ class TestRead:
         params = {
             "limit": limit,
             "cursor_id": cursor["cursor_id"],
-            "cursor_time": cursor["cursor_time"]
+            "cursor_time": cursor["cursor_time"],
+            "start": "2026-02-01",
+            "end": "2026-03-01"
         }
         page_two = await authorized_user.get(f"/transaction/", params=params)
         assert page_two.status_code == 200
@@ -110,19 +113,18 @@ class TestRead:
         assert response.status_code == 200
         data = response.json()
         assert len(data["items"]) == 2
-        assert data["items"][0]["created_at"].startswith("2026-07-02") or data["items"][0]["created_at"].startswith(
-            "2026-06-02")
+        assert data["items"][0]["created_at"].startswith("2026-02-07")
 
 
     async def test_read_total_success(self, authorized_user, create_multiple_transaction, currency_redis):
-        params = {"to_currency": "EUR"}
+        params = {"to_currency": "EUR", "start": "2026-02-01", "end": "2026-03-01"}
         response = await authorized_user.get("/transaction/total", params=params)
         assert response.status_code == 200
         assert response.json()["balance"] == -8
 
 
     async def test_read_balance_success(self, authorized_user, create_multiple_transaction, currency_redis):
-        params = {"to_currency": "EUR"}
+        params = {"to_currency": "EUR", "start": "2026-02-01", "end": "2026-03-01"}
         real_id = create_multiple_transaction[0]['category_id']
         transaction = {**TRANSACTION, "price": 100, "transaction_type": "income", "category_id": real_id}
         response_transaction = await authorized_user.post("/transaction/", json=transaction)
