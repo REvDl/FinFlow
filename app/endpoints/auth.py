@@ -22,7 +22,7 @@ async def register(background_tasks: BackgroundTasks, request:Request, response:
     await session.commit()
     await session.refresh(new_user["user"])
     set_auth_cookies(response, new_user["tokens"])
-    background_tasks.add_task(notify_all, request.app.state.http_client, f"Новый юзер {user_data.username}")
+    background_tasks.add_task(notify_all, request.app.state.http_client, f"New user: {user_data.username}")
     return {
         "user": UserResponse.model_validate(new_user["user"]),
         "tokens": new_user["tokens"]
