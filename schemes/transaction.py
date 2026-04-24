@@ -28,6 +28,7 @@ CurrencyManager = {
     "eur": "EUR", "евро": "EUR", "€": "EUR",
     "czk": "CZK", "крона": "CZK", "крон": "CZK", "kc": "CZK",
     "rub": "RUB", "рубль": "RUB", "рубли": "RUB", "₽": "RUB", "руб": "RUB",
+    "pln": "PLN", "злотый": "PLN", "злотых": "PLN", "zł": "PLN", "zl": "PLN", "зл": "PLN",
 }
 
 
@@ -68,7 +69,7 @@ def parse_flexible_date(v):
 
 
 class CurrencyModel(BaseModel):
-    to_currency: Literal["UAH", "RUB", "EUR", "USD", "CZK"] = "UAH"
+    to_currency: Literal["UAH", "RUB", "EUR", "USD", "CZK", "PLN"] = "UAH"
     @field_validator("to_currency", mode="before")
     @classmethod
     def parce_currency(cls, v):

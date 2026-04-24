@@ -7,8 +7,8 @@ import json
 
 
 #Валюти які потрібні, щоб не брати усі курси з NBU
-USED_CURRENCIES = {"UAH", "USD", "EUR", "CZK"}
-
+USED_CURRENCIES = {"UAH", "USD", "EUR", "RUB", "PLN", "CZK"}
+RUB = Decimal("0.59")
 
 async def nbu_update(redis_client: redis.Redis, http_client: httpx.AsyncClient):
     """парсить валюту банку"""
@@ -19,8 +19,7 @@ async def nbu_update(redis_client: redis.Redis, http_client: httpx.AsyncClient):
             data = response.json()
             rates = {item['cc']: Decimal(str(item['rate'])) for item in data}
             rates["UAH"] = Decimal("1")
-            #Хардкодим рубль, потому что нбу банк не отдает курс рубля
-            rates["RUB"] = Decimal("0.57")
+            rates["RUB"] = RUB
             rates = {k: v for k, v in rates.items() if k in USED_CURRENCIES}
             await redis_client.set(
                 settings.CACHE_KEY,
@@ -59,5 +58,6 @@ async def get_nbu_rates(redis_client: redis.Redis, http_client: httpx.AsyncClien
         "USD": Decimal("41.2"),
         "EUR": Decimal("44.5"),
         "CZK": Decimal("2.11"),
-        "RUB": Decimal("0.57"),
+        "RUB": RUB,
+        "PLN": Decimal("12.17")
     }
