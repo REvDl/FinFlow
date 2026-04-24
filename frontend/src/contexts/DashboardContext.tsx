@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useState, useCallback } from "react";
 import { startOfMonth, endOfMonth, format } from "date-fns";
 import { transactionsAPI } from "@/lib/api";
+import { CurrencyCode } from "@/lib/currencies";
 
-export type Currency = "UAH" | "USD" | "EUR" | "RUB" | "CZK";
+export type Currency = CurrencyCode;
 export type TransactionFilter = "all" | "income" | "spending";
 
 interface DateRange {

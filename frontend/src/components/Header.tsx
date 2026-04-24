@@ -20,17 +20,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useDashboard, Currency } from "@/contexts/DashboardContext";
 import { transactionsAPI } from "@/lib/api";
 import { invalidateAfterTransactionChange, queryKeys } from "@/lib/queryKeys";
+import { CURRENCIES } from "@/lib/currencies";
 import { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
-
-const currencies: { value: Currency; label: string; symbol: string }[] = [
-  { value: "UAH", label: "UAH", symbol: "₴" },
-  { value: "USD", label: "USD", symbol: "$" },
-  { value: "EUR", label: "EUR", symbol: "€" },
-//   { value: "RUB", label: "RUB", symbol: "₽" },
-  { value: "CZK", label: "CZK", symbol: "Kč" },
-];
 
 export function Header() {
   const { user, logout, setShowAuthModal } = useAuth();
@@ -258,7 +251,7 @@ export function Header() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="dark:bg-slate-950 dark:border-slate-800">
-              {currencies.map((c) => (
+              {CURRENCIES.map((c) => (
                 <SelectItem key={c.value} value={c.value} className="dark:text-white dark:focus:bg-slate-800">
                   <span className="flex items-center gap-1 md:gap-2">
                     <span className="font-mono text-muted-foreground">{c.symbol}</span>

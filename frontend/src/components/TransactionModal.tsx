@@ -43,14 +43,13 @@ import {
   PaginatedTransactions,
 } from "@/lib/api";
 import { queryKeys, invalidateAfterTransactionChange } from "@/lib/queryKeys";
+import { CURRENCIES, CURRENCY_VALUES } from "@/lib/currencies";
 import { cn } from "@/lib/utils";
-
-const currencies = ["UAH", "USD", "EUR", "RUB", "CZK"] as const;
 
 const transactionSchema = z.object({
   name: z.string().min(1, "Name is required"),
   price: z.number().positive("Amount must be positive"),
-  currency: z.enum(currencies),
+  currency: z.enum(CURRENCY_VALUES),
   category_id: z.number().positive("Category is required"),
   transaction_type: z.enum(["income", "spending"]),
   description: z.string().optional(),
@@ -149,7 +148,7 @@ export function TransactionModal({
       form.reset({
         name: transaction.name,
         price: transaction.price,
-        currency: transaction.currency as (typeof currencies)[number],
+        currency: transaction.currency as (typeof CURRENCY_VALUES)[number],
         category_id: transaction.category_id,
         transaction_type: transaction.transaction_type,
         description: transaction.description || "",
@@ -264,16 +263,16 @@ export function TransactionModal({
               <Select
                 value={form.watch("currency")}
                 onValueChange={(v) =>
-                  form.setValue("currency", v as (typeof currencies)[number])
+                  form.setValue("currency", v as (typeof CURRENCY_VALUES)[number])
                 }
               >
                 <SelectTrigger id="currency">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {currencies.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {c}
+                  {CURRENCIES.map((currencyOption) => (
+                    <SelectItem key={currencyOption.value} value={currencyOption.value}>
+                      {currencyOption.label}
                     </SelectItem>
                   ))}
                 </SelectContent>

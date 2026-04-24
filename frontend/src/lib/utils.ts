@@ -1,20 +1,13 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { getCurrencySymbol } from "@/lib/currencies";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
 export function formatCurrency(amount: number, currency: string): string {
-  const currencySymbols: Record<string, string> = {
-    UAH: "₴",
-    USD: "$",
-    EUR: "€",
-    RUB: "₽",
-    CZK: "Kč",
-  };
-
-  const symbol = currencySymbols[currency] || currency;
+  const symbol = getCurrencySymbol(currency);
   const formatted = new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,

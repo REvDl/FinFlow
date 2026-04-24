@@ -28,14 +28,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useDashboard } from "@/contexts/DashboardContext";
 import { transactionsAPI, categoriesAPI } from "@/lib/api";
 import { queryKeys, invalidateAfterTransactionChange } from "@/lib/queryKeys";
+import { CURRENCIES, CURRENCY_VALUES } from "@/lib/currencies";
 import { cn } from "@/lib/utils";
-
-const currencies = ["UAH", "USD", "EUR", "CZK"] as const;
 
 const schema = z.object({
   name: z.string().min(1, "Required"),
   price: z.number().positive("Must be positive"),
-  currency: z.enum(currencies),
+  currency: z.enum(CURRENCY_VALUES),
   category_id: z.number().positive("Select a category"),
   transaction_type: z.enum(["income", "spending"]),
   description: z.string().optional(),
@@ -187,9 +186,9 @@ export function AddTransactionForm() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="dark:bg-slate-950 dark:border-slate-800">
-                  {currencies.map((c) => (
-                    <SelectItem key={c} value={c} className="dark:text-white">
-                      {c}
+                  {CURRENCIES.map((currencyOption) => (
+                    <SelectItem key={currencyOption.value} value={currencyOption.value} className="dark:text-white">
+                      {currencyOption.label}
                     </SelectItem>
                   ))}
                 </SelectContent>

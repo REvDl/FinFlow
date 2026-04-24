@@ -9,6 +9,7 @@ import { useDashboard } from "@/contexts/DashboardContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { statsAPI, transactionsAPI, TotalResponse, ChartPoint, DayTransaction } from "@/lib/api";
 import { queryKeys } from "@/lib/queryKeys";
+import { getCurrencySymbol } from "@/lib/currencies";
 import { format, parseISO, eachDayOfInterval, startOfDay } from "date-fns";
 import { DayTransactionsModal } from "./DayTransactionsModal";
 
@@ -46,12 +47,11 @@ const GRADIENTS = (
 
 const CHART_GRADIENT_IDS = ["url(#grad1)", "url(#grad2)", "url(#grad3)", "url(#grad4)", "url(#grad5)"];
 const CHART_SOLID_COLORS = ["#2b65f0", "#c749ff", "#00acc1", "#aa00ff", "#1a237e"];
-const CURRENCY_SYMBOLS: Record<string, string> = { USD: "$", UAH: "₴", EUR: "€", PLN: "zł" };
 
 export function DashboardCharts() {
   const { currency, dateRange, formatDateForAPI } = useDashboard();
   const { isAuthenticated } = useAuth();
-  const currencySymbol = CURRENCY_SYMBOLS[currency] || currency;
+  const currencySymbol = getCurrencySymbol(currency);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState("");
@@ -161,7 +161,7 @@ export function DashboardCharts() {
                         tick={{
                           fill: 'var(--muted-foreground)',
                           opacity: 0.9,
-                          fontWeight: 600 // Сделал жирнее
+                          fontWeight: 600
                         }}
                       />
                     </LineChart>
