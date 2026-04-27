@@ -3,6 +3,7 @@ import traceback
 from contextlib import asynccontextmanager
 import redis.asyncio as redis
 import httpx
+from apscheduler.triggers.cron import CronTrigger
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from starlette.responses import JSONResponse
@@ -20,7 +21,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from redis.retry import Retry
 from redis.backoff import NoBackoff
-
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
 from script import nbu_update
 from telegram.bot import notify_all
 
@@ -30,6 +32,7 @@ no_retry = Retry(backoff=NoBackoff(), retries=0)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    scheduler = AsyncIOScheduler(timezone="Europe/Kyiv")
     app.state.http_client = httpx.AsyncClient()
     app.state.redis = redis.Redis(
         host=settings.REDIS_HOST,
@@ -40,6 +43,13 @@ async def lifespan(app: FastAPI):
         socket_connect_timeout=5.0,
         retry=no_retry
     )
+    scheduler.add_job(
+        nbu_update,
+        CronTrigger(hour=0, minute=0),
+        args=[app.state.redis, app.state.http_client],
+        id="parser_job"
+    )
+    scheduler.start()
     asyncio.create_task(notify_all(app.state.http_client, f"Server start successfully"))
     asyncio.create_task(nbu_update(app.state.redis, app.state.http_client))
     try:
@@ -51,6 +61,7 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
+        scheduler.shutdown()
         await app.state.redis.close()
         await app.state.http_client.aclose()
         await async_engine.dispose()
