@@ -46,7 +46,8 @@ FinFlow is a robust, high-performance personal finance management system designe
 ├── limiter/                    # Rate limiting configuration
 ├── migrations/                 # Database migration history (Alembic)
 ├── schemes/                    # Pydantic models for data validation
-├── services/                   # Business Logic (DAO - Data Access Objects)
+├── services/                   # Data access and business logic
+├── telegram/                   # Admin panel & Logs (Telegram Bot integration)
 ├── tests/                      # Integration and Mock test suites
 ├── .dockerignore               # Docker ignore rules
 ├── .env                        # Environment variables (Local)
