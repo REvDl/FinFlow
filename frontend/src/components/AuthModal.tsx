@@ -23,7 +23,7 @@ const loginSchema = z.object({
 const registerSchema = z
   .object({
     username: z.string().min(2, "Username must be at least 2 characters"),
-    password: z.string().min(8, "Password must be at least 8 characters"),
+    password: z.string().min(12, "Password must be at least 12 characters"),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {

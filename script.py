@@ -4,7 +4,7 @@ import httpx
 import redis.asyncio as redis
 from config import settings
 import json
-
+from logger import logger
 
 #Валюти які потрібні, щоб не брати усі курси з NBU
 USED_CURRENCIES = {"UAH", "USD", "EUR", "RUB", "PLN", "CZK"}
@@ -13,7 +13,7 @@ RUB = Decimal("0.59")
 async def nbu_update(redis_client: redis.Redis, http_client: httpx.AsyncClient):
     """парсить валюту банку"""
     try:
-        print("PARSER: NBU UPDATE START")
+        logger.info("[PARSER] NBU UPDATE START")
         response = await http_client.get(settings.URL_API_BANK, timeout=5)
         if response.status_code == 200:
             data = response.json()
@@ -26,11 +26,12 @@ async def nbu_update(redis_client: redis.Redis, http_client: httpx.AsyncClient):
                 json.dumps({k: str(v) for k, v in rates.items()}),
                 ex=settings.CACHE_TTL,
             )
-            print("PARSER: NBU UPDATE FINISHED")
+            logger.info("[PARSER] NBU UPDATE FINISHED")
             return rates
-
+        else:
+            logger.error(f"[PARSER] NBU API returned status {response.status_code}")
     except Exception as e:
-        print(f"API/Network error: {e}")
+        logger.error(f"API/Network error: {e}")
 
 
 
@@ -42,17 +43,20 @@ _update_nbu_ = None
 async def get_nbu_rates(redis_client: redis.Redis, http_client: httpx.AsyncClient):
     global _update_nbu_
     try:
-        print("GET_NBU_RATES CALLED")
+        logger.info("GET_NBU_RATES CALLED")
         cache = await redis_client.get(settings.CACHE_KEY)
         if cache:
             data = json.loads(cache)
             return {k: Decimal(v) for k, v in data.items()}
     except Exception as e:
-        print(f"Redis error: {e}")
+        logger.error(f"Redis error: {e}")
 
     if _update_nbu_ is None or _update_nbu_.done():
         _update_nbu_ = asyncio.create_task(nbu_update(redis_client, http_client))
     await _update_nbu_
+    fresh_rates = await _update_nbu_
+    if fresh_rates:
+        return fresh_rates
     return {
         "UAH": Decimal("1.0"),
         "USD": Decimal("41.2"),

@@ -8,15 +8,15 @@ from sqlalchemy.orm import selectinload
 from database.models import UserOrm, TransactionOrm, CategoriesOrm, TransactionType
 from schemes.transaction import TransactionCreate, TransactionUpdate, Calendar, CurrencyModel
 from script import get_nbu_rates
-
+from logger import logger
 
 class TransactionDAO:
 	@staticmethod
 	async def create_transaction(session: AsyncSession, user_id: int, spending: TransactionCreate):
 		if not spending.created_at:
-			print("DEBUG: Date is missing! Using system now().")
+			logger.debug("TRANSACTION: Date is missing! Using system now().")
 			spending.created_at = datetime.datetime.now()
-		print(f"DEBUG: Final date to save: {spending.created_at}")
+		logger.debug(f"TRANSACTION: Final date to save: {spending.created_at}")
 		new_spending = TransactionOrm(**spending.model_dump(), user_id=user_id)
 		session.add(new_spending)
 		await session.flush()

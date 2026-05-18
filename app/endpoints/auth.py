@@ -9,7 +9,7 @@ from services.refresh import RefreshTokenDAO
 from services.users import UserDAO
 from limiter.limiter import limiter
 from fastapi import Request
-
+from logger import logger
 from telegram.bot import notify_all
 
 auth_route = APIRouter(prefix="/auth", tags=["Auth"])
@@ -23,6 +23,7 @@ async def register(background_tasks: BackgroundTasks, request:Request, response:
     await session.refresh(new_user["user"])
     set_auth_cookies(response, new_user["tokens"])
     background_tasks.add_task(notify_all, request.app.state.http_client, f"New user: {user_data.username}")
+    logger.info(f"AUTH New user {user_data.username}")
     return {
         "user": UserResponse.model_validate(new_user["user"]),
         "tokens": new_user["tokens"]
@@ -35,6 +36,7 @@ async def login(request:Request, response: Response, user_data: UserLogin, sessi
     user = await AuthService.login(session, user_data)
     await session.commit()
     await session.refresh(user["user"])
+    logger.info(f"AUTH User login Successfully {user["user"]}")
     set_auth_cookies(response, user["tokens"])
     return {
         "user": UserResponse.model_validate(user["user"]),
