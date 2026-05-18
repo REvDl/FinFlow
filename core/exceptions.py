@@ -20,6 +20,8 @@ class UserNotFound(FinFlowException):pass
 class DataError(FinFlowException): pass
 class UserAlreadyExists(FinFlowException): pass
 class BrokenFileError(FinFlowException): pass
+class LargeFileSize(FinFlowException): pass
+
 
 ERROR_MAP: Dict[Type[FinFlowException], int] = {
     AuthUserAlreadyExists: status.HTTP_409_CONFLICT,
@@ -35,4 +37,5 @@ ERROR_MAP: Dict[Type[FinFlowException], int] = {
     UserAlreadyExists: status.HTTP_409_CONFLICT,
     DataError: status.HTTP_422_UNPROCESSABLE_CONTENT,
     BrokenFileError: status.HTTP_400_BAD_REQUEST,
+    LargeFileSize: status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
 }
