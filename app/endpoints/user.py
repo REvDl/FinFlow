@@ -6,8 +6,9 @@ from core.exceptions import UserNotFound, UserAlreadyExists, TokenInvalid
 from schemes.user import UserResponse, UserUpdate
 from services.users import UserDAO
 from telegram.bot import notify_all
-
+from logger import logger
 user_route = APIRouter(prefix="/user", tags=["Users"])
+
 
 
 
@@ -39,11 +40,14 @@ async def delete_me(
         request: Request,
         session = Depends(get_session),
         current_user = Depends(get_current_user)):
+    username = current_user.username
     delete_user = await UserDAO.delete_user(
         session=session,
         user_id=current_user.id
     )
+    
     if not delete_user:
         raise UserNotFound("User not found")
     await session.commit()
-    background_tasks.add_task(notify_all, request.app.state.http_client, f"Удален юзер: {current_user.username}")
+    logger.info(f"User deleted {username}")
+    background_tasks.add_task(notify_all, request.app.state.http_client, f"User deleted: {username}")
