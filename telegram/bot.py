@@ -2,10 +2,11 @@ from datetime import datetime
 import httpx
 import pytz
 from config import settings
+from logger import logger
 
 
 def get_now_str():
-    tz = pytz.timezone('Europe/Moscow')
+    tz = pytz.timezone('Europe/Kyiv')
     now = datetime.now(tz)
     return now.strftime("%H:%M:%S")
 
@@ -18,19 +19,18 @@ async def send_telegram_msg(client: httpx.AsyncClient, text):
 	params = {
 		"chat_id": settings.REVDI_ID,
 		"text":full_message,
-		"parse_mode": "Markdown"
 	}
 	try:
-		response = await client.get(url, params=params, timeout=10.0)
+		response = await client.post(url, json=params, timeout=10.0)
 		return response.text
 	except Exception as e:
-		print(f">>> [TG ERROR] Failed to send message: {e}", flush=True)
+		logger.error(f"[TG ERROR] Failed to send message: {e}")
 		return None
 
 
 async def notify_all(client: httpx.AsyncClient, message: str):
-	print(message, flush=True)
+	logger.info(message)
 	try:
 		await send_telegram_msg(client, message)
 	except Exception as e:
-		print(f">>> [TG ERROR] {e}")
+		logger.error(f"[TG ERROR] {e}")

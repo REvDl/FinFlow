@@ -30,6 +30,7 @@ async def export_data(session=Depends(get_session),
     )
     file_like = io.BytesIO(data.encode("utf-8"))
     filename = f"FinFlow_transactions_{datetime.datetime.now()}.json"
+    logger.info(f"DATA Export successfully for {current_user.username}")
     return StreamingResponse(
         file_like,
         media_type="application/json",

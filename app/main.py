@@ -25,6 +25,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from script import nbu_update
 from telegram.bot import notify_all
+from logger import logger
 
 no_retry = Retry(backoff=NoBackoff(), retries=0)
 
@@ -54,9 +55,9 @@ async def lifespan(app: FastAPI):
     asyncio.create_task(nbu_update(app.state.redis, app.state.http_client))
     try:
         await app.state.redis.ping()
-        print("Redis connected")
+        logger.info("Redis connected")
     except Exception as e:
-        print(f"Failed connected: {e}")
+        logger.error(f"Failed connected: {e}")
         asyncio.create_task(notify_all(app.state.http_client, f"Failed connected to Redis: {e}"))
     try:
         yield
@@ -65,16 +66,13 @@ async def lifespan(app: FastAPI):
         await app.state.redis.close()
         await app.state.http_client.aclose()
         await async_engine.dispose()
-        print("\033[32mINFO:\033[0m     Resources closed successfully")
+        logger.info("Resources closed successfully")
 
 
 app = FastAPI(lifespan=lifespan)
 
 origins = [
-    "http://localhost:63342",
-    "http://127.0.0.1:63342",
-    "http://localhost:5500",
-    "http://127.0.0.1:5500",
+    settings.FRONTEND_URL,
 ]
 
 app.add_middleware(
@@ -117,7 +115,7 @@ async def global_handler_exception(request: Request, exc:Exception):
     )
     client = request.app.state.http_client
     asyncio.create_task(notify_all(client, error_message))
-    print(f"ERROR 500: {exc}\n{error_traceback}")
+    logger.error(f"ERROR 500: {exc}\n{error_traceback}")
     return JSONResponse(
         status_code=500,
         content={"detail": "Internal Server Error. Administrator has already been notified."},

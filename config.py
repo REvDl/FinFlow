@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     TEST_DB_HOST:str
     TOKEN_TG: str
     REVDI_ID: int
+    SECURE_COOKIES: bool
+    FRONTEND_URL: str
+    MAX_FILE_SIZE: int
 
     @property
     def DATABASE_URL_asyncpg(self):

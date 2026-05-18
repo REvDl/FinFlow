@@ -9,16 +9,16 @@ def set_auth_cookies(response: Response, tokens:dict):
         max_age= (settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60),
         httponly=True,
         samesite="lax",
-        secure=False,
+        secure=settings.SECURE_COOKIES,
         path="/"
     )
     if "refresh_token" in tokens:
         response.set_cookie(
             key="refresh_token",
             value=tokens["refresh_token"],
-            max_age=settings.REFRESH_TOKEN_EXPIRE_MINUTES * 60,
+            max_age=(settings.REFRESH_TOKEN_EXPIRE_MINUTES * 60),
             httponly=True,
             samesite="lax",
-            secure=False,
+            secure=settings.SECURE_COOKIES,
             path="/"
         )
