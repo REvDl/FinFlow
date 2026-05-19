@@ -43,7 +43,7 @@ async def import_data(file: UploadFile = File(...),
                       session=Depends(get_session),
                       current_user=Depends(get_current_user),
                       ):
-    if file.size > settings.MAX_FILE_SIZE:
+    if file.size > settings.MAX_FILE_SIZE * (1024 * 102):
         logger.warning(f"User {current_user.username} tried to upload too large file: {file.size} bytes")
         raise LargeFileSize(f"File is too large. Maximum size allowed is {int(settings.MAX_FILE_SIZE / (1024 * 1024))}MB.")
     contents = await file.read()

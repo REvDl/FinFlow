@@ -36,10 +36,11 @@ async def login(request:Request, response: Response, user_data: UserLogin, sessi
     user = await AuthService.login(session, user_data)
     await session.commit()
     await session.refresh(user["user"])
-    logger.info(f"AUTH User login Successfully {user["user"]}")
+    validated_user = UserResponse.model_validate(user["user"])
+    logger.info(f"AUTH User login Successfully {validated_user.username}")
     set_auth_cookies(response, user["tokens"])
     return {
-        "user": UserResponse.model_validate(user["user"]),
+        "user": validated_user,
         "tokens": user["tokens"]
     }
 
