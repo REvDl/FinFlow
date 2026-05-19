@@ -3,7 +3,7 @@ from config import settings
 
 async_engine = create_async_engine(
     url = settings.DATABASE_URL_asyncpg,
-    echo = True,
+    echo = False,
     pool_size = 10,
     max_overflow = 20,
 )
