@@ -42,6 +42,7 @@ Intuitive modals for quick entry creation with category and currency selection.
 ### Transparent Backend Logging
 The backend features a strict, time-zone-aware logging system capturing everything from JWT rotation and payload validation to asynchronous Redis caching and Telegram Bot notifications.
 ![Backend Logs](assets/logs.jpg)
+*Note: All tokens, usernames, endpoints, and credentials shown in the documentation and screenshots are strictly mock data used for demonstration purposes and do not represent real-world active secrets.*
 
 ## Tech Stack
 
@@ -94,7 +95,6 @@ The system is covered by a comprehensive test suite to ensure reliability and se
 ```bash
 pytest
 ```
-
 ## Security & Performance
 
 * **Brute-force protection**: Strict rate limiting implemented on sensitive endpoints.
