@@ -1,8 +1,26 @@
-# FinFlow — Full-Stack Personal Finance Manager
+# # FinFlow — Full-Stack Personal Finance Manager
 
 FinFlow is a robust, high-performance personal finance management system designed for modern personal accounting. It allows users to track incomes and expenses, manage flexible categories, and analyze financial health with real-time multi-currency conversion and smart data processing.
 
-> **Active Development**: This project is currently in active development. New features are being added, and architectural improvements are made regularly to ensure industry-standard reliability.
+> **Production Status**: The project has successfully passed the staging phase and is fully deployed in a secure production environment. Active support, monitoring, and regular architectural improvements are performed 24/7.
+
+---
+
+## Live Production
+
+The application is fully operational and accessible globally via secure HTTPS protocol:
+**[https://finflow.website](https://finflow.website)**
+
+---
+
+## Deployment & DevOps Architecture
+
+The production environment is built with fault-tolerance, isolation, and industry-standard security practices in mind:
+
+* **Web Server & Reverse Proxy**: `Nginx` handles high-performance static file serving for the React frontend (`/dist` package compiled via `pnpm`) and acts as a reverse proxy for the backend, managing transparent route rewrites (stripping `/api/` prefixes) and custom header injection (`X-Real-IP`, `X-Forwarded-For`).
+* **Containerization & Isolation**: The entire backend ecosystem (FastAPI ASGI application, PostgreSQL database, and Redis cache) is containerized via `Docker Compose`. Container ports are strictly isolated within an internal virtual bridge network, leaving no exposed database ports to the host network.
+* **SSL/TLS Encryption**: Automated cryptographic certificates provided by `Let's Encrypt` (`Certbot`) with enforced global HTTP-to-HTTPS redirection.
+* **Server Hardening & Security**: Host-level access is restricted strictly to authorized SSH keys with password authentication completely disabled. The server utilizes automated brute-force protection, strict network-level firewalls, and active log parsing to mitigate remote access risks.
 
 ## Awards & Recognition
 
@@ -71,7 +89,7 @@ The backend features a strict, time-zone-aware logging system capturing everythi
 ├── limiter/                    # Rate limiting configuration
 ├── migrations/                 # Database migration history (Alembic)
 ├── schemes/                    # Pydantic models for data validation
-├── services/                   # Data access and business logic
+├── services/                       # Data access and business logic
 ├── telegram/                   # Admin panel & Logs (Telegram Bot integration)
 ├── tests/                      # Integration and Mock test suites
 ├── .dockerignore               # Docker ignore rules
