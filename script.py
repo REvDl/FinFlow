@@ -5,10 +5,10 @@ import redis.asyncio as redis
 from config import settings
 import json
 from logger import logger
-
+from telegram.bot import notify_all
 #Валюти які потрібні, щоб не брати усі курси з NBU
 USED_CURRENCIES = {"UAH", "USD", "EUR", "RUB", "PLN", "CZK"}
-RUB = Decimal("0.59")
+RUB = Decimal("0.62")
 
 async def nbu_update(redis_client: redis.Redis, http_client: httpx.AsyncClient):
     """парсить валюту банку"""
@@ -26,10 +26,15 @@ async def nbu_update(redis_client: redis.Redis, http_client: httpx.AsyncClient):
                 json.dumps({k: str(v) for k, v in rates.items()}),
                 ex=settings.CACHE_TTL,
             )
-            logger.info("[PARSER] NBU UPDATE FINISHED")
+            msg = "[PARSER] NBU UPDATE FINISHED"
+            logger.info(msg)
+            asyncio.create_task(notify_all(http_client, msg))
             return rates
         else:
-            logger.error(f"[PARSER] NBU API returned status {response.status_code}")
+            msg = f"[PARSER] NBU API returned status {response.status_code}"
+            logger.error(msg)
+            asyncio.create_task(notify_all(http_client, msg))
+
     except Exception as e:
         logger.error(f"API/Network error: {e}")
 
@@ -59,9 +64,9 @@ async def get_nbu_rates(redis_client: redis.Redis, http_client: httpx.AsyncClien
         return fresh_rates
     return {
         "UAH": Decimal("1.0"),
-        "USD": Decimal("41.2"),
-        "EUR": Decimal("44.5"),
-        "CZK": Decimal("2.11"),
+        "USD": Decimal("44,23"),
+        "EUR": Decimal("51,30"),
+        "CZK": Decimal("2,11"),
         "RUB": RUB,
-        "PLN": Decimal("12.17")
+        "PLN": Decimal("12.08")
     }
