@@ -1,5 +1,5 @@
 import * as React from "react";
-import { LogOut, Wallet, CalendarIcon, RotateCcw, Sun, Moon, DownloadCloud, UploadCloud } from "lucide-react";
+import { LogOut, Wallet, CalendarIcon, RotateCcw, Sun, Moon, DownloadCloud, UploadCloud, MoreHorizontal } from "lucide-react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,7 +20,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useDashboard, Currency } from "@/contexts/DashboardContext";
 import { transactionsAPI } from "@/lib/api";
 import { invalidateAfterTransactionChange, queryKeys } from "@/lib/queryKeys";
-import { CURRENCIES } from "@/lib/currencies";
+import { CURRENCIES, getCurrencySymbol } from "@/lib/currencies";
 import { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
@@ -132,7 +132,7 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 border-b bg-white/90 dark:bg-slate-950/90 backdrop-blur shadow-sm transition-colors duration-300">
-      <div className="flex h-16 w-full items-center justify-between gap-2 px-4 md:px-8">
+      <div className="flex h-16 w-full items-center justify-between gap-1 px-2 sm:gap-2 sm:px-4 md:px-8">
 
         <div className="flex items-center gap-2 shrink-0 group cursor-pointer">
           <div className="flex size-9 items-center justify-center rounded-lg bg-indigo-600 text-white transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
@@ -143,7 +143,7 @@ export function Header() {
           </span>
         </div>
 
-        <div className="flex items-center gap-2 md:gap-3 overflow-hidden">
+        <div className="flex min-w-0 flex-1 items-center justify-end gap-1 sm:gap-2 md:gap-3">
           <input
             type="file"
             ref={fileInputRef}
@@ -153,6 +153,46 @@ export function Header() {
           />
 
           {user && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  title="More actions"
+                  className="rounded-lg border border-gray-200 dark:border-slate-800 dark:hover:bg-slate-800 dark:text-white shrink-0 sm:hidden"
+                >
+                  <MoreHorizontal className="size-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                className="flex w-48 flex-col gap-1 p-2 dark:bg-slate-950 dark:border-slate-800 sm:hidden"
+                align="end"
+              >
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleImportClick}
+                  disabled={isImporting}
+                  className="w-full justify-start gap-2 font-bold uppercase tracking-widest text-[10px]"
+                >
+                  <UploadCloud className={cn("size-4 text-emerald-500", isImporting && "animate-bounce")} />
+                  Import JSON
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleExport}
+                  disabled={isExporting}
+                  className="w-full justify-start gap-2 font-bold uppercase tracking-widest text-[10px]"
+                >
+                  <DownloadCloud className={cn("size-4 text-indigo-500", isExporting && "animate-bounce")} />
+                  Export JSON
+                </Button>
+              </PopoverContent>
+            </Popover>
+          )}
+
+          {user && (
             <Button
               variant="ghost"
               size="icon"
@@ -160,7 +200,7 @@ export function Header() {
               disabled={isImporting}
               title="Import transactions from JSON"
               className={cn(
-                "rounded-lg border border-gray-200 dark:border-slate-800 dark:hover:bg-slate-800 dark:text-white shrink-0 transition-all",
+                "hidden rounded-lg border border-gray-200 dark:border-slate-800 dark:hover:bg-slate-800 dark:text-white shrink-0 transition-all sm:inline-flex",
                 isImporting && "opacity-50"
               )}
             >
@@ -176,7 +216,7 @@ export function Header() {
               disabled={isExporting}
               title="Export transactions to JSON"
               className={cn(
-                "rounded-lg border border-gray-200 dark:border-slate-800 dark:hover:bg-slate-800 dark:text-white shrink-0 transition-all",
+                "hidden rounded-lg border border-gray-200 dark:border-slate-800 dark:hover:bg-slate-800 dark:text-white shrink-0 transition-all sm:inline-flex",
                 isExporting && "animate-pulse opacity-50"
               )}
             >
@@ -247,9 +287,15 @@ export function Header() {
             value={currency}
             onValueChange={(v) => setCurrency(v as Currency)}
           >
-            <SelectTrigger className="w-auto min-w-[75px] md:w-[110px] text-xs font-black uppercase tracking-widest dark:bg-slate-900 dark:border-slate-800 dark:text-white shrink-0 px-2 md:px-3">
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger className="relative h-9 w-10 shrink-0 justify-center px-0 text-xs font-black tracking-normal dark:bg-slate-900 dark:border-slate-800 dark:text-white [&>svg]:hidden sm:w-auto sm:min-w-[75px] sm:justify-between sm:gap-2 sm:px-3 sm:tracking-widest sm:[&>svg]:block md:w-[110px]">
+            <span className="font-mono text-sm sm:hidden">
+              {getCurrencySymbol(currency)}
+            </span>
+            <div className="hidden items-center gap-1 sm:flex">
+              <span className="font-mono text-sm">{getCurrencySymbol(currency)}</span>
+              <span className="uppercase">{currency}</span>
+            </div>
+          </SelectTrigger>
             <SelectContent className="dark:bg-slate-950 dark:border-slate-800">
               {CURRENCIES.map((c) => (
                 <SelectItem key={c.value} value={c.value} className="dark:text-white dark:focus:bg-slate-800">
