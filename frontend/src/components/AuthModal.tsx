@@ -15,6 +15,12 @@ import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { useAuth } from "@/contexts/AuthContext";
 
+/** Must match schemes/user.py (UserCreate) */
+const USERNAME_MIN_LENGTH = 5;
+const USERNAME_MAX_LENGTH = 19;
+const PASSWORD_MIN_LENGTH = 12;
+const PASSWORD_MAX_LENGTH = 64;
+
 const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
   password: z.string().min(1, "Password is required"),
@@ -22,8 +28,14 @@ const loginSchema = z.object({
 
 const registerSchema = z
   .object({
-    username: z.string().min(2, "Username must be at least 2 characters"),
-    password: z.string().min(12, "Password must be at least 12 characters"),
+    username: z
+      .string()
+      .min(USERNAME_MIN_LENGTH, `Username must be at least ${USERNAME_MIN_LENGTH} characters`)
+      .max(USERNAME_MAX_LENGTH, `Username must be at most ${USERNAME_MAX_LENGTH} characters`),
+    password: z
+      .string()
+      .min(PASSWORD_MIN_LENGTH, `Password must be at least ${PASSWORD_MIN_LENGTH} characters`)
+      .max(PASSWORD_MAX_LENGTH, `Password must be at most ${PASSWORD_MAX_LENGTH} characters`),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -162,7 +174,9 @@ export function AuthModal() {
               <Input
                 id="register-username"
                 type="text"
-                placeholder="Choose a username"
+                placeholder={`Username (${USERNAME_MIN_LENGTH}–${USERNAME_MAX_LENGTH} characters)`}
+                minLength={USERNAME_MIN_LENGTH}
+                maxLength={USERNAME_MAX_LENGTH}
                 {...registerForm.register("username")}
               />
               {registerForm.formState.errors.username && (
@@ -176,9 +190,14 @@ export function AuthModal() {
               <Input
                 id="register-password"
                 type="password"
-                placeholder="Create a password (min 8 characters)"
+                placeholder={`At least ${PASSWORD_MIN_LENGTH} characters`}
+                minLength={PASSWORD_MIN_LENGTH}
+                maxLength={PASSWORD_MAX_LENGTH}
                 {...registerForm.register("password")}
               />
+              <p className="text-xs text-muted-foreground">
+                Minimum {PASSWORD_MIN_LENGTH} characters.
+              </p>
               {registerForm.formState.errors.password && (
                 <p className="text-sm text-destructive">
                   {registerForm.formState.errors.password.message}
